@@ -17,20 +17,28 @@
         <img class="scene-image" id="scene-image" src="asset/OSCA_home.png"
           width="2613" height="1471" alt="오스카 빌리지. 왼쪽부터 O, S, C, A 집이 자리하고 있습니다." fetchpriority="high">
         <nav class="entrances" id="entrances" aria-label="집 입구">
-          <a class="entrance o-entrance" href="#house/O" aria-label="O 집으로 들어가기"></a>
-          <a class="entrance s-entrance" href="#house/S" aria-label="S 집으로 들어가기"></a>
-          <a class="entrance c-entrance" href="#house/C" aria-label="C 집으로 들어가기"></a>
-          <a class="entrance a-entrance" href="#house/A" aria-label="A 집으로 들어가기"></a>
+          <a class="entrance o-entrance" href="#house/O" aria-label="O 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
+          <a class="entrance s-entrance" href="#house/S" aria-label="S 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
+          <a class="entrance c-entrance" href="#house/C" aria-label="C 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
+          <a class="entrance a-entrance" href="#house/A" aria-label="A 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
         </nav>
         <div class="candidate-panels" id="candidate-panels" role="group" aria-label="후보패널" hidden></div>
         <a class="back-link" id="back-link" href="#village" hidden><span aria-hidden="true">←</span> 마을로 돌아가기</a>
+        <div class="room-voted-sign" id="room-voted-sign" role="status" hidden>
+          <span class="completion-seal" aria-hidden="true">✓</span>
+          <div><strong>투표 완료</strong><span id="room-voted-detail"></span></div>
+        </div>
       </div>
       <nav class="mobile-entrances" id="mobile-entrances" aria-label="작은 화면에서 집 선택">
-        <a href="#house/O">O 집</a>
-        <a href="#house/S">S 집</a>
-        <a href="#house/C">C 집</a>
-        <a href="#house/A">A 집</a>
+        <a href="#house/O">O 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
+        <a href="#house/S">S 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
+        <a href="#house/C">C 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
+        <a href="#house/A">A 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
       </nav>
+      <div class="village-status" id="village-status">
+        <p id="village-vote-summary" role="status">0 / 4 하우스 투표 완료</p>
+        <button class="local-data-open" id="local-data-open" type="button" aria-haspopup="dialog">테스트 데이터 확인 및 초기화</button>
+      </div>
       <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
     </main>
     <dialog class="candidate-dialog" id="candidate-dialog" aria-labelledby="board-title">
@@ -44,6 +52,28 @@
         </button>
         <p class="board-vote-status" id="board-vote-status" role="status" hidden></p>
         <button class="board-close" id="board-close" type="button" aria-label="후보 보드 닫기">×</button>
+      </div>
+    </dialog>
+    <dialog class="vote-dialog local-data-dialog" id="local-data-dialog" aria-labelledby="local-data-title">
+      <p class="vote-eyebrow">임시 테스트 도구</p>
+      <h2 id="local-data-title">로컬 투표 데이터</h2>
+      <button class="local-data-close" id="local-data-close" type="button" aria-label="로컬 데이터 닫기" autofocus>×</button>
+      <p class="vote-detail">현재 브라우저에 저장된 투표 기록입니다.</p>
+      <table class="local-data-table">
+        <caption class="sr-only">하우스별 투표 후보와 저장 시각</caption>
+        <thead><tr><th scope="col">하우스</th><th scope="col">투표 후보</th><th scope="col">투표 시각</th></tr></thead>
+        <tbody id="local-data-rows"></tbody>
+      </table>
+      <details class="local-data-raw"><summary>저장 원문 보기</summary><pre id="local-data-raw"></pre></details>
+      <p class="local-data-note">초기화는 이 앱의 투표 기록만 삭제합니다. 다른 로컬 데이터는 유지됩니다.</p>
+      <p class="local-data-result" id="local-data-result" role="status"></p>
+      <button class="local-data-reset" id="local-data-reset" type="button">투표 데이터 초기화</button>
+      <div class="reset-confirm" id="reset-confirm" hidden>
+        <p>모든 하우스의 투표 기록을 초기화할까요?</p>
+        <div class="vote-actions">
+          <button class="local-data-reset" id="local-data-reset-yes" type="button">초기화</button>
+          <button class="vote-no" id="local-data-reset-no" type="button">취소</button>
+        </div>
       </div>
     </dialog>
     <dialog class="vote-dialog" id="vote-dialog" aria-labelledby="vote-message" aria-describedby="vote-detail">

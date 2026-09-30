@@ -1,4 +1,4 @@
-// 빌리지와 후보 보드를 표시하고 투표 확인·저장·다음 하우스 이동을 관리합니다.
+// 빌리지·후보 보드·투표 현황을 표시하고 투표 및 임시 데이터 도구를 관리합니다.
 const rooms = {
   O: {
     description: "서재", image: "asset/O_house.png",
@@ -66,6 +66,18 @@ const voteMessage = document.getElementById("vote-message");
 const voteDetail = document.getElementById("vote-detail");
 const voteYes = document.getElementById("vote-yes");
 const voteNo = document.getElementById("vote-no");
+const roomVotedSign = document.getElementById("room-voted-sign");
+const roomVotedDetail = document.getElementById("room-voted-detail");
+const villageStatus = document.getElementById("village-status");
+const villageVoteSummary = document.getElementById("village-vote-summary");
+const localDataOpen = document.getElementById("local-data-open");
+const localDataDialog = document.getElementById("local-data-dialog");
+const localDataRows = document.getElementById("local-data-rows");
+const localDataRaw = document.getElementById("local-data-raw");
+const localDataResult = document.getElementById("local-data-result");
+const localDataReset = document.getElementById("local-data-reset");
+const resetConfirm = document.getElementById("reset-confirm");
+const resetNo = document.getElementById("local-data-reset-no");
 let voteStep;
 let pendingVote;
 let nextHouse;
@@ -174,19 +186,106 @@ candidateDialog.addEventListener("click", (event) => {
 
 function refreshVoteStatus() {
   try {
-    const vote = voteStore.read(window.localStorage)[currentHouse];
+    const votes = voteStore.read(window.localStorage);
+    renderCompletionSigns(votes);
+    const vote = votes[currentHouse];
     boardVote.disabled = Boolean(vote);
     boardVoteLabel.textContent = vote ? "투표 완료" : "";
     boardVote.setAttribute("aria-label", vote ? "투표 완료" : "투표하기");
     boardVoteStatus.textContent = vote ? `${currentHouse} 하우스 · 후보 ${vote.candidate}에게 투표했습니다.` : "";
     boardVoteStatus.hidden = !vote;
   } catch {
+    renderCompletionSigns({});
+    villageVoteSummary.textContent = "로컬 투표 기록을 확인할 수 없습니다.";
     boardVote.disabled = true;
     boardVoteLabel.textContent = "저장 확인 필요";
+    boardVote.setAttribute("aria-label", "저장 확인 필요");
     boardVoteStatus.textContent = "저장된 투표를 읽지 못했습니다. 브라우저의 저장 설정을 확인한 뒤 새로고침해 주세요.";
     boardVoteStatus.hidden = false;
   }
 }
+
+function renderCompletionSigns(votes) {
+  for (const house of Object.keys(rooms)) {
+    const vote = votes[house];
+    const entrance = entrances.querySelector(`[href="#house/${house}"]`);
+    entrance.querySelector(".house-voted-sign").hidden = !vote;
+    entrance.setAttribute("aria-label", `${house} 집으로 들어가기${vote ? " · 투표 완료" : ""}`);
+    const mobileLink = mobileEntrances.querySelector(`[href="#house/${house}"]`);
+    mobileLink.querySelector(".mobile-voted-label").hidden = !vote;
+    mobileLink.classList.toggle("has-voted", Boolean(vote));
+  }
+  const vote = votes[currentHouse];
+  roomVotedSign.hidden = !vote;
+  roomVotedDetail.textContent = vote ? `후보 ${vote.candidate}에게 한 표` : "";
+  if (vote) {
+    const [leftTop, rightTop] = rooms[currentHouse].panels[vote.candidate - 1];
+    roomVotedSign.style.left = `${(leftTop[0] + rightTop[0]) / 2}%`;
+    roomVotedSign.style.top = `${Math.min(leftTop[1], rightTop[1])}%`;
+  }
+  villageVoteSummary.textContent = `${Object.keys(votes).length} / 4 하우스 투표 완료`;
+}
+
+function renderLocalData() {
+  localDataRows.replaceChildren();
+  localDataRaw.textContent = "저장 원문을 읽을 수 없습니다.";
+  try {
+    const storage = window.localStorage;
+    const raw = storage.getItem(voteStore.key);
+    localDataRaw.textContent = raw === null ? "저장된 투표 데이터가 없습니다." : raw;
+    const votes = voteStore.read(storage);
+    for (const house of Object.keys(rooms)) {
+      const vote = votes[house];
+      const date = vote ? new Date(vote.votedAt) : undefined;
+      const row = document.createElement("tr");
+      for (const value of [house, vote ? `후보 ${vote.candidate}` : "미투표",
+        date && Number.isFinite(date.getTime()) ? date.toLocaleString("ko-KR") : "—"]) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.append(cell);
+      }
+      localDataRows.append(row);
+    }
+  } catch {
+    localDataResult.textContent = "투표 기록을 읽지 못했습니다. 저장 원문을 확인하거나 초기화해 주세요.";
+  }
+}
+
+localDataOpen.addEventListener("click", () => {
+  localDataResult.textContent = "";
+  resetConfirm.hidden = true;
+  localDataReset.hidden = false;
+  renderLocalData();
+  localDataDialog.showModal();
+});
+document.getElementById("local-data-close").addEventListener("click", () => localDataDialog.close());
+localDataDialog.addEventListener("click", (event) => {
+  if (event.target === localDataDialog) localDataDialog.close();
+});
+localDataReset.addEventListener("click", () => {
+  resetConfirm.hidden = false;
+  localDataReset.hidden = true;
+  resetNo.focus();
+});
+resetNo.addEventListener("click", () => {
+  resetConfirm.hidden = true;
+  localDataReset.hidden = false;
+  localDataReset.focus();
+});
+document.getElementById("local-data-reset-yes").addEventListener("click", () => {
+  try {
+    voteStore.reset(window.localStorage);
+  } catch {
+    localDataResult.textContent = "초기화하지 못했습니다. 브라우저의 저장 설정을 확인해 주세요.";
+    return;
+  }
+  resetConfirm.hidden = true;
+  localDataReset.hidden = false;
+  refreshVoteStatus();
+  renderLocalData();
+  localDataResult.textContent = "투표 기록을 초기화했습니다. 다시 투표할 수 있습니다.";
+  localDataReset.focus();
+});
 
 function showVotePrompt(step, heading, message, detail) {
   voteStep = step;
@@ -254,7 +353,13 @@ voteDialog.addEventListener("cancel", (event) => {
   declineVotePrompt();
 });
 window.addEventListener("storage", (event) => {
-  if (event.key === "osca.votes.v1" || event.key === null) refreshVoteStatus();
+  if (event.key === voteStore.key || event.key === null) {
+    refreshVoteStatus();
+    if (localDataDialog.open) {
+      localDataResult.textContent = "";
+      renderLocalData();
+    }
+  }
 });
 
 function renderScreen() {
@@ -263,6 +368,7 @@ function renderScreen() {
   const title = room ? `${house} 집 · 오스카 빌리지` : "오스카 빌리지";
 
   if (voteDialog.open) voteDialog.close();
+  if (localDataDialog.open) localDataDialog.close();
   if (candidateDialog.open) candidateDialog.close();
   pendingVote = undefined;
   boardRequest += 1;
@@ -280,6 +386,9 @@ function renderScreen() {
   entrances.hidden = Boolean(room);
   mobileEntrances.hidden = Boolean(room);
   backLink.hidden = !room;
+  villageStatus.hidden = Boolean(room);
+  scene.classList.toggle("is-village", !room);
+  refreshVoteStatus();
   screenTitle.textContent = title;
   document.title = title;
   announcement.textContent = room ? `${house} 집에 들어왔습니다.` : "오스카 빌리지입니다.";

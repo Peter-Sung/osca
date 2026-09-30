@@ -70,3 +70,29 @@ test("손상되거나 접근이 차단된 저장소는 기존 데이터를 덮�
   }
   assert.throws(() => voteStore.read({ getItem() { throw new Error("SecurityError"); } }), /SecurityError/);
 });
+
+test("초기화는 OSCA 투표만 지우며 이후 최초 투표를 다시 허용한다", () => {
+  const data = new Map([["other-app", "유지할 데이터"]]);
+  const storage = {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: (key) => data.delete(key),
+  };
+  voteStore.save(storage, "O", 2);
+  voteStore.save(storage, "S", 4);
+  voteStore.reset(storage);
+  assert.equal(data.get("other-app"), "유지할 데이터");
+  assert.equal(data.has(voteStore.key), false);
+  assert.deepEqual(voteStore.read(storage), {});
+  assert.equal(voteStore.nextHouse(voteStore.read(storage)), "O");
+  assert.equal(voteStore.save(storage, "O", 3).saved, true);
+  assert.equal(voteStore.read(storage).O.candidate, 3);
+});
+
+test("초기화 실패 시 오류를 반환하고 기존 투표가 남는다", () => {
+  const storage = memoryStorage();
+  voteStore.save(storage, "A", 2);
+  storage.removeItem = () => { throw new Error("SecurityError"); };
+  assert.throws(() => voteStore.reset(storage), /SecurityError/);
+  assert.equal(voteStore.read(storage).A.candidate, 2);
+});

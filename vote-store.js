@@ -36,7 +36,11 @@ const voteStore = (() => {
     return order.find((house) => !votes[house]);
   }
 
-  return { read, save, nextHouse };
+  function reset(storage) {
+    storage.removeItem(key);
+  }
+
+  return { key, read, save, nextHouse, reset };
 })();
 
 if (typeof module !== "undefined") module.exports = voteStore;

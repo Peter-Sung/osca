@@ -1,0 +1,60 @@
+<!-- 오스카 빌리지와 네 집의 이미지 화면을 표시합니다. -->
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f1e6">
+    <title>오스카 빌리지</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="vote-store.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="village-app">
+      <h1 class="sr-only" id="screen-title">오스카 빌리지</h1>
+      <div class="scene" id="scene">
+        <img class="scene-image" id="scene-image" src="asset/OSCA_home.png"
+          width="2613" height="1471" alt="오스카 빌리지. 왼쪽부터 O, S, C, A 집이 자리하고 있습니다." fetchpriority="high">
+        <nav class="entrances" id="entrances" aria-label="집 입구">
+          <a class="entrance o-entrance" href="#house/O" aria-label="O 집으로 들어가기"></a>
+          <a class="entrance s-entrance" href="#house/S" aria-label="S 집으로 들어가기"></a>
+          <a class="entrance c-entrance" href="#house/C" aria-label="C 집으로 들어가기"></a>
+          <a class="entrance a-entrance" href="#house/A" aria-label="A 집으로 들어가기"></a>
+        </nav>
+        <div class="candidate-panels" id="candidate-panels" role="group" aria-label="후보패널" hidden></div>
+        <a class="back-link" id="back-link" href="#village" hidden><span aria-hidden="true">←</span> 마을로 돌아가기</a>
+      </div>
+      <nav class="mobile-entrances" id="mobile-entrances" aria-label="작은 화면에서 집 선택">
+        <a href="#house/O">O 집</a>
+        <a href="#house/S">S 집</a>
+        <a href="#house/C">C 집</a>
+        <a href="#house/A">A 집</a>
+      </nav>
+      <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
+    </main>
+    <dialog class="candidate-dialog" id="candidate-dialog" aria-labelledby="board-title">
+      <div class="candidate-board" id="candidate-board">
+        <h2 class="sr-only" id="board-title">후보 상세 보드</h2>
+        <img class="board-image" id="board-image" width="1448" height="1086" alt="" aria-hidden="true">
+        <div class="board-tabs" id="board-tabs" role="tablist" aria-label="후보 선택"></div>
+        <div class="board-content" id="board-content" role="tabpanel" tabindex="0"></div>
+        <button class="board-vote" id="board-vote" type="button" aria-label="투표하기" aria-haspopup="dialog">
+          <span id="board-vote-label"></span>
+        </button>
+        <p class="board-vote-status" id="board-vote-status" role="status" hidden></p>
+        <button class="board-close" id="board-close" type="button" aria-label="후보 보드 닫기">×</button>
+      </div>
+    </dialog>
+    <dialog class="vote-dialog" id="vote-dialog" aria-labelledby="vote-message" aria-describedby="vote-detail">
+      <p class="vote-eyebrow" id="vote-heading">투표 확인</p>
+      <h2 id="vote-message"></h2>
+      <p class="vote-detail" id="vote-detail"></p>
+      <div class="vote-actions">
+        <button class="vote-yes" id="vote-yes" type="button" autofocus>예</button>
+        <button class="vote-no" id="vote-no" type="button">아니오</button>
+      </div>
+    </dialog>
+    <footer class="site-footer">© 2026 Innovation Award O.S.C.A (by. Work Innovation CoE). All rights reserved.</footer>
+  </body>
+</html>

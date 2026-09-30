@@ -1,0 +1,11 @@
+{
+  "name": "osca-village",
+  "version": "0.1.0",
+  "private": true,
+  "description": "오스카 빌리지와 O·S·C·A 집을 탐색하는 웹 앱",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check app.js && node --check vote-store.js && node --check server.mjs",
+    "test": "node --test vote-store.test.cjs"
+  }
+}

@@ -23,10 +23,19 @@ export function createAdminProxy({ endpoint, fetchImpl = fetch }) {
     if (action !== "login" && !/^[0-9a-f]{64}$/.test(token ?? "")) { send({ message: "관리자 로그인이 필요합니다." }, 401); return; }
     let body;
     try {
-      let size = 0; const chunks = [];
-      for await (const chunk of request) { size += chunk.length; if (size <= 8192) chunks.push(chunk); }
-      if (size > 8192) { send({ message: "요청 내용이 너무 큽니다." }, 413); return; }
-      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      let raw;
+      if (request.body !== undefined) {
+        // Vercel은 이미 읽은 본문을 request.body로 전달합니다.
+        raw = typeof request.body === "string" ? request.body
+          : Buffer.isBuffer(request.body) ? request.body.toString("utf8") : JSON.stringify(request.body);
+      } else {
+        let size = 0; const chunks = [];
+        for await (const chunk of request) { size += chunk.length; if (size <= 8192) chunks.push(chunk); }
+        if (size > 8192) { send({ message: "요청 내용이 너무 큽니다." }, 413); return; }
+        raw = Buffer.concat(chunks).toString("utf8");
+      }
+      if (Buffer.byteLength(raw, "utf8") > 8192) { send({ message: "요청 내용이 너무 큽니다." }, 413); return; }
+      body = JSON.parse(raw);
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
     } catch { send({ message: "입력한 내용을 다시 확인해 주세요." }, 400); return; }
     try {

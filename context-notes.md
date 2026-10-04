@@ -176,3 +176,13 @@
 
 - 사용자가 지금까지 개발한 변경 사항의 커밋과 상세한 메시지 작성을 요청했다. 기존 후보 소개 커밋 이후의 Supabase 로그인·DB 투표, 인사 및 나의 투표 현황, 화면 전환·명칭 수정, 관리자 기능과 검증·운영 문서를 함께 기록한다.
 - 커밋 직전 `npm.cmd run check`와 `npm.cmd test` 31개가 통과했다. Supabase CLI의 생성 캐시 `supabase/.temp/`는 Git에서 제외하며 공개 API 주소·마이그레이션·서버 함수·테스트 소스를 포함한다. 이번 요청은 로컬 커밋이며 원격 푸시는 수행하지 않는다.
+
+### 2026-10-04 Vercel 관리자 404 해결
+
+- 사용자가 GitHub 푸시 후 osca-vote.vercel.app/wic_admin의 404를 알려주었다. 실제 HTTP 확인에서 메인과 admin.html은 200, /wic_admin과 /wic_admin/api/session은 404였다. 로컬 Node 서버의 경로·관리자 중계를 Vercel 정적 배포로 이전하는 설정이 없었다.
+- Vercel 공식 문서에서 api 디렉터리 Node 함수와 vercel.json의 framework·buildCommand·outputDirectory·rewrites·headers를 확인했다. 공개 화면·이미지는 dist에서 CDN으로 제공하고 관리자 중계만 Vercel 함수로 실행한다. 10MB 이상인 메인 이미지를 함수 응답으로 옮기지 않고 기존 정적 전달을 유지한다.
+- Vercel에는 기존 Supabase 관리자 API 공개 주소만 사용한다. 비밀번호·서비스 역할 키는 추가하지 않으며 DB 스키마·비밀번호 설정은 변경하지 않는다. 기존 HttpOnly·SameSite·Secure 쿠키와 동일 출처 검사를 유지한다.
+- `vercel.json`으로 Other 프레임워크·npm run build·dist 정적 출력과 관리자 페이지·API rewrite를 설정했다. Vercel 함수가 파싱한 request.body와 일반 Node 스트림을 모두 지원하되 8KiB UTF-8 제한·JSON 객체 검증·출처/세션 확인은 공통 적용한다.
+- `npm.cmd run build`로 공개 파일 17개를 생성했으며 `npm.cmd run check`와 `npm.cmd test` 34개가 통과했다. 새 테스트는 Vercel 파싱 본문, HTTPS Secure/HttpOnly 쿠키, 크기·형식 제한, 실제 함수 엔트리의 비인증 차단을 확인한다. 아직 수정 소스는 커밋·푸시하지 않았고 Vercel 운영 재배포·로그인 검증은 남아 있다.
+- README에 Vercel 프로젝트 Root Directory·빌드 설정·새 커밋 배포 Ready·Production 도메인·함수와 로그 확인 순서를 기록했다. vercel.json이 해당 프로젝트 설정을 덮어쓰므로 별도 비밀 키 입력이나 Supabase 조작은 필요하지 않다.
+- 사용자가 수정 사항의 상세 커밋과 GitHub 푸시를 승인했다. 커밋 직전 공개 파일 빌드·구문 검사·테스트 34개를 다시 통과했다. 이번 커밋은 Vercel 페이지·API 경로와 파싱 본문 지원, 보안 회귀 테스트, 빌드·운영 문서를 포함하며 푸시 후 운영 응답을 확인한다.

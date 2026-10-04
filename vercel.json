@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "cleanUrls": false,
+  "functions": { "api/wic_admin/*.mjs": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/wic_admin/api/:action", "destination": "/api/wic_admin/:action" },
+    { "source": "/wic_admin", "destination": "/admin.html" },
+    { "source": "/wic_admin/", "destination": "/admin.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(wic_admin|admin.html|admin.js|admin.css)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" }
+      ]
+    }
+  ]
+}

@@ -106,8 +106,23 @@ order by u.created_at desc, v.house;
 - 같은 OSCA DB를 사용할 때는 화면 파일과 `config.js`를 함께 배포합니다. 서버 비밀 키를 프런트엔드에 넣을 필요가 없습니다.
 - 다른 Supabase 프로젝트를 사용할 때는 `supabase/migrations/`의 SQL을 적용하고 `supabase/functions/osca-api/`를 배포한 뒤 `config.js`의 `apiUrl`을 그 프로젝트의 함수 주소로 변경합니다. 현재 프로젝트에 이미 적용한 SQL을 다시 실행하지 않습니다.
 - `supabase/config.toml`의 `verify_jwt = false`는 승인한 전화번호 입력 로그인 방식에 필요한 설정입니다.
-- 관리자 기능까지 배포할 때는 `server.mjs`·`admin-proxy.mjs`를 실행하는 Node 서버와 HTTPS가 필요합니다. 화면 파일만 올리는 정적 호스팅에는 관리자 API 중계가 없으므로 관리자 로그인이 동작하지 않습니다. HTTPS 프록시는 외부 출처의 `Host`와 `X-Forwarded-Proto: https`를 Node 서버에 전달해야 합니다. 현재 개발 서버는 로컬 주소에만 연결됩니다.
+- 관리자 기능까지 배포할 때는 HTTPS와 관리자 서버 중계가 필요합니다. Vercel에서는 아래 서버 함수 구성을 사용합니다. 일반 Node 호스팅에서는 `server.mjs`·`admin-proxy.mjs`를 실행하고 HTTPS 프록시가 외부 출처의 `Host`와 `X-Forwarded-Proto: https`를 전달하도록 설정합니다. 현재 개발 서버는 로컬 주소에만 연결됩니다.
 - 관리자 서버 함수는 `supabase/functions/osca-admin/`입니다. JWT 검사 대신 자체 관리자 세션을 검증하며 브라우저 직접 호출용 CORS는 제공하지 않습니다. 다른 프로젝트에 옮길 경우 마이그레이션·관리자 함수 적용 후 그 프로젝트의 관리자 비밀번호 해시를 별도로 설정해야 합니다.
+
+### Vercel 배포와 관리자 404 해결
+
+기존 정적 배포는 `/admin.html` 파일만 제공하며 로컬 `server.mjs`의 `/wic_admin` 경로와 관리자 API를 실행하지 않아 404가 발생합니다. HTML 경로만 연결해서는 로그인까지 동작하지 않습니다.
+
+`vercel.json`은 `/wic_admin`을 관리자 HTML로, `/wic_admin/api/:action`을 `api/wic_admin/[action].mjs` 서버 함수로 연결합니다. `npm run build`는 공개 화면·이미지 17개만 `dist`로 복사합니다. 서버 소스·문서·SQL·테스트는 정적 배포에서 제외됩니다. 이미지는 CDN에서 제공하고, 관리자 요청만 Vercel Node 함수가 기존 Supabase API로 중계합니다. 관리자 비밀번호와 Supabase 비밀 키를 Vercel 환경 변수에 넣을 필요는 없습니다.
+
+1. 수정 소스가 GitHub `Peter-Sung/osca`의 `master`에 반영된 뒤 [Vercel Dashboard](https://vercel.com/dashboard)에서 **osca-vote** 프로젝트를 엽니다.
+2. **Settings → Build and Deployment**에서 프로젝트의 **Root Directory**가 저장소 루트인지 확인합니다. `vercel.json`과 `package.json`이 있는 위치가 루트여야 합니다.
+3. 배포 설정은 저장소의 `vercel.json`에서 **Framework Preset = Other**, **Build Command = npm run build**, **Output Directory = dist**로 지정했습니다. 이 설정은 프로젝트의 해당 설정을 덮어쓰므로 정상적으로 구성 파일을 읽으면 별도로 변경하지 않아도 됩니다. 빌드 로그에 `공개 파일 17개를 dist에 생성했습니다.`가 표시되는지 확인합니다.
+4. **Deployments**에서 새 커밋의 배포를 선택하고 **Ready**가 될 때까지 확인합니다. 이전 커밋을 다시 배포하면 수정이 적용되지 않습니다. 새 배포가 자동 생성되지 않으면 Git 연결과 배포 브랜치가 `Peter-Sung/osca`·`master`인지 확인합니다. 새 커밋의 배포를 다시 실행할 때는 **Redeploy**를 사용합니다.
+5. **Production** 도메인이 새 배포를 가리키는지 확인한 뒤 [운영 관리자](https://osca-vote.vercel.app/wic_admin)를 새로고침합니다. 지정 비밀번호로 로그인해 대시보드·사용자 검색을 확인합니다.
+6. 화면이 404이면 새 커밋과 Root Directory·설정 파일 반영 여부를 먼저 확인합니다. 로그인 요청이 404이면 배포 상세에서 `api/wic_admin/[action].mjs` 함수가 생성되었는지 확인합니다. 503이면 Vercel의 **Logs**와 Supabase **Edge Functions → osca-admin → Invocations / Logs**에서 동일 시각의 응답을 확인합니다. 로그에 관리자 비밀번호나 쿠키 값을 직접 기록하지 않습니다.
+
+위 설정 안내는 [Vercel 빌드 설정](https://vercel.com/docs/builds/configure-a-build), [프로젝트 구성](https://vercel.com/docs/project-configuration/vercel-json), [Node 함수](https://vercel.com/docs/functions/runtimes/node-js/advanced-node-configuration)의 공식 문서를 확인했습니다. 로컬 `npm run build` 성공만으로 운영 Vercel의 로그인 성공을 확인한 것은 아니므로, 재배포 후 별도 검증이 필요합니다.
 
 ## 파일
 
@@ -121,6 +136,7 @@ order by u.created_at desc, v.house;
 - `admin-proxy.mjs`, `supabase/functions/osca-admin/`, `admin.test.mjs` — 관리자 쿠키·인증·서버 중계와 테스트.
 - `supabase/tests/admin.sql` — 임시 트랜잭션에서 관리자 집계·검색·삭제·재투표·실패 복구를 검증하고 롤백하는 SQL.
 - `server.mjs` — 허용한 화면 파일·공개 설정·이미지 제공 및 관리자 API 중계 서버.
+- `build.mjs`, `vercel.json`, `api/wic_admin/[action].mjs` — 공개 파일 빌드·Vercel 경로와 관리자 서버 함수.
 - `plan.md`, `checklist.md`, `context-notes.md` — 계획과 진행 기록.
 
 ## 구문 검사

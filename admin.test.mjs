@@ -90,3 +90,33 @@ test("만료와 로그아웃에는 관리자 쿠키를 삭제한다", async () =
     assert.equal(response.status, 401); assert.match(response.headers.get("set-cookie"), /Max-Age=0/);
   });
 });
+test("Vercel의 파싱된 본문에서도 HTTPS 로그인 쿠키와 액션 검증을 유지한다", async () => {
+  for (const body of [{ password: "테스트" }, '{"password":"테스트"}', Buffer.from('{"password":"테스트"}')]) {
+    const proxy = createAdminProxy({ endpoint: "https://edge.test/admin", fetchImpl: (_, options) => {
+      assert.deepEqual(JSON.parse(options.body), { password: "테스트", action: "login" });
+      return json({ token, expiresAt });
+    } });
+    let status, headers, data;
+    await proxy({ url: "/api/wic_admin/login", method: "POST", socket: {}, body,
+      headers: { "content-type": "application/json", host: "osca.example", origin: "https://osca.example", "x-forwarded-proto": "https" } },
+    { writeHead: (code, value) => { status = code; headers = value; }, end: (value) => { data = JSON.parse(value); } });
+    assert.equal(status, 200); assert.match(headers["Set-Cookie"], /HttpOnly; SameSite=Strict; Secure/);
+    assert.deepEqual(data, { expiresAt });
+  }
+});
+test("Vercel의 파싱된 본문에도 크기·JSON 객체 제한을 적용한다", async () => {
+  const proxy = createAdminProxy({ endpoint: "https://edge.test/admin", fetchImpl: () => { throw new Error("unexpected upstream"); } });
+  for (const [body, expected] of [[{ password: "한".repeat(3000) }, 413], [[], 400], [null, 400], ["broken", 400]]) {
+    let status;
+    await proxy({ url: "/api/wic_admin/login", method: "POST", socket: {}, body, headers: { "content-type": "application/json" } },
+      { writeHead: (code) => { status = code; }, end: () => {} });
+    assert.equal(status, expected);
+  }
+});
+test("Vercel 함수의 직접 비인증 호출은 관리자 데이터에 접근할 수 없다", async () => {
+  const { default: run } = await import("./api/wic_admin/[action].mjs");
+  let status;
+  await run({ url: "/api/wic_admin/dashboard", method: "POST", socket: {}, headers: { "content-type": "application/json" } },
+    { writeHead: (code) => { status = code; }, end: () => {} });
+  assert.equal(status, 401);
+});

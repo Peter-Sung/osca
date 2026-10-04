@@ -1,4 +1,4 @@
-// 빌리지·후보 보드·투표 현황을 표시하고 투표 및 임시 데이터 도구를 관리합니다.
+// 빌리지·후보 소개 보드·투표 현황을 표시하고 투표 및 임시 데이터 도구를 관리합니다.
 const rooms = {
   O: {
     description: "서재", image: "asset/O_house.png",
@@ -9,6 +9,38 @@ const rooms = {
       [[63.5, 16.8], [73.5, 20.7], [73.5, 49.8], [63.5, 45.6]],
     ],
     tabs: [[13.122, 8.656, 25.622, 14.733], [38.881, 8.656, 26.45, 14.733], [65.401, 8.656, 27.003, 14.733]],
+    introductions: [
+      {
+        title: "AI활용 빠른 검증",
+        subtitle: "U+one AI Agent 오픈",
+        quote: ["“고객이 말하는 순간,", "상담사처럼 Simple하게 해결”"],
+        activities: [
+          "상담사 인터뷰와 데이터 분석으로 고객의 진짜 니즈 발견",
+          "AI를 활용해 프로토타입을 빠르게 제작, 상담사 경험으로 구현",
+          "실제 유저 테스트와 AI 페르소나 Agent로 이중 검증하며 완성도를 높임",
+        ],
+      },
+      {
+        title: "467명 고객 목소리 기반",
+        subtitle: "비개발자들이 출시한 서비스",
+        quote: ["“467명의 고객 목소리를", "서비스 출시로 바꿔낸 실행력”"],
+        activities: [
+          "2주 만에 심층 인터뷰, 설문, 사용성 테스트를 통해 고객 문제와 니즈를 데이터로 검증",
+          "비개발자, 비기획자가 AI & 바이브 코딩으로 서비스 기획·개발·출시까지 이뤄낸 Growth mindset",
+          "고객 검증부터 실제 출시까지 1개월 내 완주",
+        ],
+      },
+      {
+        title: "제휴 방법론 혁신",
+        subtitle: "10X 사업기회 발굴",
+        quote: ["“제휴사를 고객으로 다시 보자", "새로운 사업기회가 열렸다”"],
+        activities: [
+          "DT 방법론으로 제휴 담당자의 질문 자체를 전환해, 제휴사의 숨은 페인 포인트와 니즈 발굴",
+          "새로운 접근법으로 기존엔 접점이 없던 이종 산업까지 제휴 대상 확장",
+          "전파 교육을 통해 개인의 경험을 조직 전체의 일하는 방식으로 확산",
+        ],
+      },
+    ],
   },
   S: {
     description: "음악 공간", image: "asset/S_house.png",
@@ -20,6 +52,47 @@ const rooms = {
       [[63.8, 17.5], [73.7, 20.8], [73.7, 47.7], [63.8, 43.8]],
     ],
     tabs: [[11, 10.5, 19, 11.5], [30.5, 10.5, 19, 11.5], [50.2, 10.5, 19, 11.5], [69.8, 10.5, 19, 11.5]],
+    introductions: [
+      {
+        quote: ["“익시오 서비스 개발 시스템", "표준화 체계 구축”"],
+        activities: [
+          "익시오 서비스 개발 시스템(Confluence, Jira) 표준화 체계 구축",
+          "모든 이해관계자가 업무 현황에 대해 동일한 해석을 할 수 있도록 WorkFlow 관리를 위한 Jira Standard set 설계 및 구현",
+          "구축된 표준 체계 타 조직 전파 및 타 조직에서 벤치마킹",
+        ],
+        summary: { lead: "표준화", text: "전파·벤치마킹" },
+      },
+      {
+        quote: ["“처음부터 끝까지 실행한", "최초 프로젝트 PO”"],
+        activities: [
+          "서비스생산시스템 전 과정 최초 실행",
+          "출시 전 결정부터 출시 후 고객 변화와 피드백 반영까지 실행",
+          "완벽히 이해하지 못한 부분은 학습하며 실전에 적용",
+          "실행하며 얻은 6가지 Lesson Learn을 공유, 조직의 공통 자산으로 체계화",
+        ],
+        summary: { lead: "6가지", text: "Lesson Learn 체계화" },
+      },
+      {
+        quote: ["“변화의 의미를 먼저 이해하고", "사람들을 변화의 여정으로 이끈 리더”"],
+        activities: [
+          "서비스생산시스템을 누구보다 먼저 학습하고 현업 언어로 재해석해 조직 이해도 향상에 기여",
+          "변화에 대한 우려를 경청하고 서비스생산시스템의 지향점을 설명하며 기업부문 내 공감대 형성",
+          "현장의 문제 해결을 지원하며 변화 수용성과 실행력을 높이는 역할 수행",
+          "리더와 구성원을 연결하는 가교 역할로 서비스생산시스템의 현장 정착과 실행 촉진",
+        ],
+        summary: { lead: "변화 확산", text: "Change Leader" },
+      },
+      {
+        quote: ["“흩어진 업무가", "하나의 목표로 연결되는 순간”"],
+        activities: [
+          "통합 JIRA를 실행 기반으로 정비하며 전략, 목표, 업무를 하나의 흐름으로 연결",
+          "자신의 업무가 어떤 목표와 고객 가치에 연결되는지 확인할 수 있는 공통 기준 마련",
+          "반복적인 확인과 업무 인계 과정에서의 혼선과 비효율을 줄이는 업무 관리 환경 조성",
+          "일의 흐름을 투명하게 공유하고, 조직이 같은 방향을 바라보며 협업할 수 있는 기반 구축",
+        ],
+        summary: { lead: "통합 JIRA", text: "실행 기반 구축" },
+      },
+    ],
   },
   C: {
     description: "카페", image: "asset/C_house.png",
@@ -30,6 +103,39 @@ const rooms = {
       [[58.8, 16.7], [69.5, 20.5], [69.5, 45], [58.8, 41]],
     ],
     tabs: [[11.533, 8.471, 24.171, 12.891], [37.5, 8.287, 25.414, 13.168], [64.365, 8.379, 24.793, 13.168]],
+    introductions: [
+      {
+        title: "프로토타입 개발", titleNote: "비개발자 출신",
+        subtitle: "사용성 테스트 수행 완료",
+        quote: ["“콘텐츠 소비를 넘어, TV와 대화하며 즐기는", "고객 경험 설계! 2주간의 혁신”"],
+        activities: [
+          "고객 문제 및 가치 탐색을 위한 Design Thinking 방법론 전 과정 직접 실행(타깃 고객 8인 심층 인터뷰)",
+          "AI 기반 대화형 TV 서비스 프로토타입 2주 만에 자체 구현",
+          "UT(사용성 테스트) 7회 진행으로 가설 검증 및 개선 과제 도출 完",
+        ],
+      },
+      {
+        title: "과제 4건 완료", titleNote: "연내 추가 1건 예정",
+        subtitle: "실행 역량 내재화",
+        quote: ["“감(感)이나 공급자 관점을 버리고", "진짜 고객의 불편을 찾아 떠난 60일의 여정”"],
+        activities: [
+          "기존 가설, 내부 의견을 버리고 데이터 분석을 통한 고객 문제 재정의(이용 패턴 100건 분석, 고객 인터뷰 6명)",
+          "고객 섭외부터 인터뷰, 결과 분석까지 전 팀원이 직접 수행",
+          "즉시 개선 및 실행 가능한 Quick-Win 과제 5건 도출",
+        ],
+      },
+      {
+        title: "해외 첫 광고 실험", titleNote: "사내 최초",
+        subtitle: "글로벌 시장 인사이트 확보",
+        quote: ["“글로벌 서비스, 글로벌 고객에게 먼저 묻다.", "고객에 직접 닿기 위한 Smoke Test에 도전”"],
+        activities: [
+          "타깃 국가 고객 문제·니즈를 분석하고 검증할 핵심 가치 도출",
+          "국내·프랑스 고객向 광고 및 랜딩 페이지 직접 제작·개발",
+          "스모크 테스트를 통해 고객 유입·반응 수집 및 심층 분석",
+          "국가별 시장 특성 학습 및 실험을 통한 현지 최적화 역량 내재화",
+        ],
+      },
+    ],
   },
   A: {
     description: "캠핑 공간", image: "asset/A_house.png",
@@ -40,6 +146,38 @@ const rooms = {
       [[59, 16.3], [70.1, 19.5], [70.1, 47], [59, 43.5]],
     ],
     tabs: [[10.843, 5.433, 24.309, 13.26], [37.707, 5.433, 25.069, 13.26], [64.572, 5.433, 25.483, 13.444]],
+    introductions: [
+      {
+        quote: ["“AI 기반 협업으로 역할의 경계를 허물고,", "도전과 학습의 문화로 고객 가치를 확장한 스쿼드”"],
+        activities: [
+          "AI 기반 협업으로 역할의 경계를 넘어 업무 혁신 추진",
+          "구성원의 운영 로테이션과 노하우 공유로 병목 없는 협업 체계 구축",
+          "생산량 4.7배 향상, 리드타임 80% 단축, 운영비 30% 절감",
+          "실패와 도전을 응원하고, 시도 후 Lesson을 통해 성장하는 회고 문화와 고객 중심 개선으로 NPS 9점 → 36점 향상",
+        ],
+        metrics: [["리드타임", "5일→2일"], ["생산량", "4.7배↑"], ["운영비", "30%↓"]],
+      },
+      {
+        quote: ["“고객의 목소리를 출발점으로, 초기부터 원팀 협업으로", "고객 가치와 서비스 품질을 높인 스쿼드”"],
+        activities: [
+          "고객 조사, 인터뷰, 테스트 등 고객 검증 기반 의사 결정 체계 정립",
+          "고객 피드백을 기반으로 개선 과제와 서비스 방향을 도출하는 문화 정착",
+          "소수(4명) 인원 한계를 넘어 35회 스프린트 운영을 이루어낸 고효율 협업 체계",
+          "기획·개발·UX·품질의 초기 협업으로 일정과 품질을 동시에 확보",
+        ],
+        metrics: [["스프린트 운영", "35회"], ["원팀 협업", "체계 정착"], ["고객 검증 기반", "문화 정착"]],
+      },
+      {
+        quote: ["“고객 검증, 기술 전문성, 빠른 실행을 바탕으로", "사업의 가능성을 성과로 증명한 스쿼드”"],
+        activities: [
+          "고객 인터뷰와 사용성 검증을 기반으로 고객 중심 의사 결정 체계 구축",
+          "AI 기반 개발 체계로 추가 인력 없이 핵심 기능 개발 및 개발 기간 17% 단축",
+          "월 2회 스프린트와 월 1회 배포로 고객 요구를 빠르게 반영하는 실행 체계 정착",
+          "PoC 고객의 50%를 유료 고객으로 전환하고 고객 계정 363% 성장을 달성하며 사업 성과 입증",
+        ],
+        metrics: [["PoC 고객", "50%↑"], ["고객 계정", "363%↑"], ["국내외 최초", "CSAP 인증"]],
+      },
+    ],
   },
 };
 
@@ -56,6 +194,8 @@ const boardImage = document.getElementById("board-image");
 const boardTitle = document.getElementById("board-title");
 const boardTabs = document.getElementById("board-tabs");
 const boardContent = document.getElementById("board-content");
+const boardScrollHint = document.getElementById("board-scroll-hint");
+const boardContentObserver = new ResizeObserver(updateScrollHint);
 const boardClose = document.getElementById("board-close");
 const boardVote = document.getElementById("board-vote");
 const boardVoteLabel = document.getElementById("board-vote-label");
@@ -85,10 +225,95 @@ let previousHouse;
 let currentHouse;
 let boardRequest = 0;
 
-// 후보 데이터는 방별·후보별로 분리하며 실제 내용은 추후 작성합니다.
+// 소개가 준비된 하우스만 후보 순서에 맞춰 연결합니다.
 for (const room of Object.values(rooms)) {
-  room.candidates = room.panels.map((points) => ({ points, content: "" }));
+  room.candidates = room.panels.map((points, index) => ({
+    points, content: room.introductions?.[index],
+  }));
 }
+
+function renderIntroduction(content) {
+  boardContentObserver.disconnect();
+  boardContentObserver.observe(boardContent);
+  boardContent.replaceChildren();
+  if (!content) return;
+  const article = document.createElement("article");
+  article.className = "candidate-introduction";
+  if (content.title) {
+    const title = document.createElement("h3");
+    title.className = "introduction-title";
+    title.textContent = content.title;
+    if (content.titleNote) {
+      const note = document.createElement("span");
+      note.className = "introduction-title-note";
+      note.textContent = content.titleNote;
+      title.append(" ", note);
+    }
+    article.append(title);
+  }
+  if (content.subtitle) {
+    const subtitle = document.createElement("p");
+    subtitle.className = "introduction-subtitle";
+    subtitle.textContent = content.subtitle;
+    article.append(subtitle);
+  }
+  const quote = document.createElement("p");
+  quote.className = "introduction-quote";
+  const activities = document.createElement("ul");
+  activities.className = "introduction-activities";
+  for (const line of content.quote) {
+    const span = document.createElement("span");
+    span.textContent = line;
+    quote.append(span);
+  }
+  for (const activity of content.activities) {
+    const item = document.createElement("li");
+    item.textContent = activity;
+    activities.append(item);
+  }
+  article.append(quote, activities);
+  if (content.summary) {
+    const summary = document.createElement("p");
+    summary.className = "introduction-summary";
+    const lead = document.createElement("strong");
+    lead.textContent = content.summary.lead;
+    summary.append(lead, ` ${content.summary.text}`);
+    article.append(summary);
+  }
+  if (content.metrics) {
+    const metrics = document.createElement("dl");
+    metrics.className = "introduction-metrics";
+    for (const [label, value] of content.metrics) {
+      const metric = document.createElement("div");
+      const term = document.createElement("dt");
+      const detail = document.createElement("dd");
+      term.textContent = label;
+      detail.textContent = value;
+      metric.append(term, detail);
+      metrics.append(metric);
+    }
+    article.append(metrics);
+  }
+  boardContent.append(article);
+  boardContentObserver.observe(article);
+}
+
+function updateScrollHint() {
+  const overflow = boardContent.scrollHeight - boardContent.clientHeight;
+  const atBottom = overflow - boardContent.scrollTop <= 2;
+  boardScrollHint.hidden = !candidateDialog.open || !boardContent.firstElementChild || overflow <= 2;
+  boardScrollHint.dataset.direction = atBottom ? "up" : "down";
+  boardScrollHint.firstElementChild.textContent = atBottom ? "↑" : "↓";
+  boardScrollHint.setAttribute("aria-label", atBottom ? "소개 내용 최상단으로 이동" : "소개 내용 최하단으로 이동");
+}
+boardContent.addEventListener("scroll", updateScrollHint, { passive: true });
+candidateDialog.addEventListener("close", updateScrollHint);
+boardScrollHint.addEventListener("click", () => {
+  boardContent.scrollTo({
+    top: boardScrollHint.dataset.direction === "up" ? 0 : boardContent.scrollHeight,
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+  });
+});
 
 function positionElement(element, [left, top, width, height]) {
   Object.assign(element.style, {
@@ -129,12 +354,17 @@ function selectCandidate(index, focus = false) {
   boardContent.dataset.house = currentHouse;
   boardContent.dataset.candidate = String(index + 1);
   boardContent.setAttribute("aria-labelledby", `candidate-tab-${index + 1}`);
-  boardContent.textContent = room.candidates[index].content;
+  renderIntroduction(room.candidates[index].content);
+  boardContent.scrollTop = 0;
+  updateScrollHint();
 }
 
 async function openCandidateBoard(index) {
   const request = ++boardRequest;
   const room = rooms[currentHouse];
+  candidateDialog.dataset.house = currentHouse;
+  const [lastTabLeft, , lastTabWidth] = room.tabs.at(-1);
+  candidateDialog.style.setProperty("--board-content-right", `${100 - lastTabLeft - lastTabWidth}%`);
   boardImage.src = `asset/${currentHouse}_desc_board_vote.png`;
   positionElement(boardVote, room.voteBounds);
   refreshVoteStatus();
@@ -176,6 +406,8 @@ async function openCandidateBoard(index) {
   }
   if (request !== boardRequest || candidateDialog.open) return;
   candidateDialog.showModal();
+  boardContent.scrollTo({ top: 0, behavior: "instant" });
+  updateScrollHint();
   boardTabs.children[index].focus({ preventScroll: true });
 }
 

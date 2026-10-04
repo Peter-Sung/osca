@@ -417,7 +417,7 @@ body:has(dialog[open]) { overflow: hidden; }
   width: 80%;
   margin: 0;
   text-align: center;
-  color: #355742;
+  color: #e5007d;
   font-size: clamp(12px, 1.6vw, 18px);
   line-height: 1.5;
 }
@@ -501,7 +501,16 @@ body:has(dialog[open]) { overflow: hidden; }
   font-weight: 700;
   letter-spacing: 0.08em;
 }
-.identity-dialog .vote-eyebrow { padding-right: 18px; font-size: 12px; }
+.board-vote.has-label:disabled span { color: #e5007d; }
+.phone-field-heading { display:flex; justify-content:space-between; align-items:center; position:relative; margin-bottom:8px; }
+.phone-field-heading label { margin-bottom:0; }
+.privacy-help-button { display:grid; place-items:center; width:25px; height:25px; padding:0; border:1px solid #8b8579; border-radius:50%; background:transparent; color:#493e30; font:inherit; font-size:17px; cursor:pointer; }
+.privacy-help-button:focus-visible { outline:2px solid #355742; outline-offset:3px; }
+.privacy-help-content { position:absolute; z-index:2; top:calc(100% + 10px); right:0; width:100%; max-height:min(360px,50svh); overflow:auto; padding:18px; border:1px solid #c9b994; border-radius:12px; background:#fffdf7; box-shadow:0 8px 28px #493e302e; color:#493e30; font-size:12px; line-height:1.7; }
+.privacy-help:has(.privacy-help-content:not([hidden]))::after { content:""; position:absolute; z-index:3; top:calc(100% + 5px); right:7px; width:10px; height:10px; transform:rotate(45deg); border-top:1px solid #c9b994; border-left:1px solid #c9b994; background:#fffdf7; }
+.privacy-help-content p { margin:10px 0; }
+.privacy-help-content ol { margin:0; padding-left:18px; }
+.privacy-help-content li + li { margin-top:8px; }
 .identity-close {
   position: absolute;
   top: 12px;
@@ -534,7 +543,6 @@ body:has(dialog[open]) { overflow: hidden; }
 .identity-dialog input[aria-invalid="true"] { border-color: #a45c40; }
 .field-help { margin: 8px 0 22px; color: #82735d; font-size: 12px; line-height: 1.6; }
 .identity-error { padding: 12px; border: 1px solid #e5c3a6; border-radius: 12px; background: #fff2e4; color: #954f35; font-size: 13px; line-height: 1.6; }
-.identity-note { margin: 18px 0 0; color: #82735d; font-size: 12px; line-height: 1.6; text-align: center; }
 .vote-actions button:disabled, .identity-close:disabled { cursor: wait; opacity: 0.65; }
 @media (max-width: 640px) {
   .user-status { top: -54px; right: 0; max-width: 100%; font-size: 13px; }

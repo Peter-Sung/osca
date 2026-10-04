@@ -1,8 +1,10 @@
-// 관리자 인증·서버 쿠키·출처 검사·오류 응답의 보안 경계를 검증합니다.
+// 관리자 통계 비율·순위와 인증·쿠키·출처 검사·오류 응답을 검증합니다.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { createAdminHandler } from "./supabase/functions/osca-admin/handler.mjs";
 import { createAdminProxy } from "./admin-proxy.mjs";
 const token = "a".repeat(64), expiresAt = "2050-01-01T00:00:00Z";
@@ -20,10 +22,62 @@ async function withProxy(fetchImpl, callback) {
 }
 const post = (url, action, body = {}, headers = {}) => fetch(`${url}/wic_admin/api/${action}`, {
   method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+const chartSource = readFileSync(new URL("./admin.js", import.meta.url), "utf8").split('$("admin-login-form").addEventListener')[0];
+const charts = runInNewContext(`${chartSource}\n({ share, percent, candidateStandings })`);
+
+test("가입자 구성비와 후보 득표율은 최댓값 대신 전체를 분모로 계산한다", () => {
+  assert.equal(charts.share(1, 2), 50);
+  const result = charts.candidateStandings([{ candidate: 1, votes: 6 }, { candidate: 2, votes: 3 }, { candidate: 3, votes: 1 }]);
+  assert.equal(result.total, 10);
+  assert.deepEqual(Array.from(result.rows, (row) => row.percentage), [60, 30, 10]);
+  assert.deepEqual(Array.from(result.rows, (row) => row.rank), [1, 2, 3]);
+  assert.equal(result.leaders[0].candidate, 1); assert.equal(result.gap, 30);
+});
+
+test("공동 선두는 같은 순위와 0%p 격차이며 무득표 후보에는 순위를 주지 않는다", () => {
+  const result = charts.candidateStandings([{ candidate: 1, votes: 2 }, { candidate: 2, votes: 2 }, { candidate: 3, votes: 1 }, { candidate: 4, votes: 0 }]);
+  assert.deepEqual(Array.from(result.rows, (row) => row.rank), [1, 1, 3, null]);
+  assert.deepEqual(Array.from(result.leaders, (row) => row.candidate), [1, 2]);
+  assert.equal(result.rows[0].tied, true); assert.equal(result.gap, 0);
+  assert.deepEqual(Array.from(result.rows, (row) => row.percentage), [40, 40, 20, 0]);
+});
+
+test("가입자·투표가 없을 때 비율은 0이고 선두·순위·NaN이 생기지 않는다", () => {
+  assert.equal(charts.share(0, 0), 0);
+  for (const items of [[], [{ candidate: 1, votes: 0 }, { candidate: 2, votes: 0 }]]) {
+    const result = charts.candidateStandings(items);
+    assert.equal(result.total, 0); assert.equal(result.leaders.length, 0); assert.equal(result.gap, 0);
+    for (const row of result.rows) { assert.equal(row.percentage, 0); assert.equal(row.rank, null); }
+  }
+});
+
+test("비율은 소수 첫째 자리로 표시하고 막대 계산에는 반올림 전 값을 사용한다", () => {
+  const result = charts.candidateStandings([1, 2, 3].map((candidate) => ({ candidate, votes: 1 })));
+  assert.equal(charts.percent(result.rows[0].percentage), "33.3%");
+  assert.ok(Math.abs(result.rows.reduce((sum, row) => sum + row.percentage, 0) - 100) < 1e-9);
+});
 test("관리자 세션 없이 대시보드·검색·삭제·로그아웃은 DB에 전달되지 않는다", async () => {
   const run = handler(() => { throw new Error("unexpected RPC"); });
   for (const action of ["dashboard", "session", "users", "logout"]) assert.equal((await run(req({ action }))).status, 401);
+  assert.equal((await run(req({ action: "logout-user", userId: "00000000-0000-4000-8000-000000000001" }))).status, 401);
   assert.equal((await run(req({ action: "delete", userId: "00000000-0000-4000-8000-000000000001", expected: {} }))).status, 401);
+});
+
+test("사용자 로그아웃은 관리자 토큰·사용자 ID를 검증하고 전용 RPC로만 전달한다", async () => {
+  const userId = "00000000-0000-4000-8000-000000000001";
+  const run = handler((url, options) => {
+    assert.match(url, /osca_admin_logout_user$/);
+    assert.deepEqual(JSON.parse(options.body), { p_token_hash: createHash("sha256").update(token).digest("hex"), p_user_id: userId });
+    return json({ status: "ok", data: { loggedOut: true }, expiresAt });
+  });
+  assert.equal((await run(req({ action: "logout-user", userId: "bad" }, { Authorization: `Bearer ${token}` }))).status, 400);
+  const response = await run(req({ action: "logout-user", userId }, { Authorization: `Bearer ${token}` }));
+  assert.equal(response.status, 200); assert.equal((await response.json()).data.loggedOut, true);
+  await withProxy(() => json({ data: { loggedOut: true }, expiresAt }), async (url) => {
+    assert.equal((await post(url, "logout-user", { userId })).status, 401);
+    assert.equal((await post(url, "logout-user", { userId }, { Cookie: `osca_admin_session=${token}`, Origin: "https://evil.test" })).status, 403);
+    assert.equal((await post(url, "logout-user", { userId }, { Cookie: `osca_admin_session=${token}` })).status, 200);
+  });
 });
 test("브라우저 직접 호출과 잘못된 입력을 서버에서 차단한다", async () => {
   const run = handler(() => { throw new Error("unexpected RPC"); });

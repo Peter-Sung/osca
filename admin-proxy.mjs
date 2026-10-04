@@ -10,7 +10,7 @@ export function createAdminProxy({ endpoint, fetchImpl = fetch }) {
     };
     const secure = request.socket.encrypted || request.headers["x-forwarded-proto"] === "https";
     const cookie = (value, age) => `${cookieName}=${value}; Path=/wic_admin; Max-Age=${age}; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}`;
-    if (request.method !== "POST" || !["login", "session", "dashboard", "users", "delete", "logout"].includes(action)) {
+    if (request.method !== "POST" || !["login", "session", "dashboard", "users", "delete", "logout", "logout-user"].includes(action)) {
       send({ message: "허용되지 않은 요청입니다." }, 405); return;
     }
     if (!request.headers["content-type"]?.startsWith("application/json")) { send({ message: "허용되지 않은 요청입니다." }, 415); return; }

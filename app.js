@@ -531,11 +531,10 @@ function openIdentity(mode) {
   identityError.hidden = true;
   identityPhone.removeAttribute("aria-invalid");
   identityNickname.removeAttribute("aria-invalid");
-  document.getElementById("identity-title").textContent = mode === "vote" ? "당신의 한 표를 남겨주세요" : "반가워요, 함께 시작해요";
-  document.getElementById("identity-description").textContent = mode === "vote"
-    ? "먼저 전화번호를 입력하고 선택한 후보의 투표를 이어가세요."
-    : "전화번호로 로그인하고, 네 하우스에서 소중한 한 표를 남겨주세요.";
-  identitySubmit.textContent = mode === "vote" ? "투표 이어가기" : "로그인하기";
+  document.getElementById("identity-title").textContent = "투표를 위해 먼저 사용자 등록이 필요합니다.";
+  document.getElementById("identity-description").textContent = "입력된 정보는 투표를 집계하고, 경품 지급을 위해 사용됩니다. (당첨자 한정)";
+  identitySubmit.textContent = mode === "vote" ? "사용자 등록 및 투표하기" : "사용자 등록 및 로그인";
+  setPrivacyHelp(false);
   identityDialog.showModal();
   identityPhone.focus();
 }
@@ -544,9 +543,33 @@ function cancelIdentity() {
   if (identityBusy) return;
   operationRequest += 1;
   identityDialog.close();
+  setPrivacyHelp(false);
   draftIdentity = undefined;
   pendingVote = undefined;
 }
+const privacyHelpButton = document.getElementById("privacy-help-button");
+const privacyHelpContent = document.getElementById("privacy-help-content");
+let privacyHelpPinned = false;
+function setPrivacyHelp(open, pinned = false) {
+  privacyHelpPinned = pinned;
+  privacyHelpContent.hidden = !open;
+  privacyHelpButton.setAttribute("aria-expanded", String(open));
+}
+privacyHelpButton.addEventListener("mouseenter", () => setPrivacyHelp(true, privacyHelpPinned));
+privacyHelpButton.addEventListener("focus", () => setPrivacyHelp(true, privacyHelpPinned));
+privacyHelpButton.addEventListener("click", () => setPrivacyHelp(!privacyHelpPinned, !privacyHelpPinned));
+document.querySelector(".phone-field-heading").addEventListener("mouseleave", () => {
+  if (!privacyHelpPinned && document.activeElement !== privacyHelpButton) setPrivacyHelp(false);
+});
+privacyHelpButton.addEventListener("blur", () => { if (!privacyHelpPinned) setPrivacyHelp(false); });
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".phone-field-heading")) setPrivacyHelp(false);
+});
+identityDialog.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !privacyHelpContent.hidden) {
+    event.preventDefault(); event.stopPropagation(); setPrivacyHelp(false);
+  }
+});
 identityClose.addEventListener("click", cancelIdentity);
 identityDialog.addEventListener("cancel", (event) => { event.preventDefault(); cancelIdentity(); });
 identityDialog.addEventListener("click", (event) => { if (event.target === identityDialog) cancelIdentity(); });
@@ -669,6 +692,11 @@ voteYes.addEventListener("click", async () => {
     }
     if (request !== operationRequest) return;
     draftIdentity = undefined;
+    if (result.status === "logged-out") {
+      showVotePrompt("error", "로그인 확인", "다시 로그인해 주세요.",
+        "로그인이 해제되었습니다. 전화번호를 다시 입력해 로그인하면 기존 투표 내역을 확인하고 미투표 항목에 투표할 수 있습니다.");
+      return;
+    }
     if (result.status === "missing") {
       showVotePrompt("error", "로그인 확인", "사용자 정보를 다시 확인해 주세요.",
         "저장된 사용자 정보가 없어 다시 로그인해야 합니다. 투표는 저장되지 않았습니다.");

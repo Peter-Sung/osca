@@ -24,13 +24,14 @@
       <p class="admin-notice" id="admin-notice" role="status" hidden></p>
       <div id="dashboard-view">
         <div class="metric-grid" id="admin-metrics"></div>
-        <section class="chart-panel"><div class="panel-heading"><h2>투표 완료 수별 사용자</h2><span>전체 가입자 기준</span></div><div id="completion-chart"></div></section>
+        <section class="chart-panel"><div class="panel-heading"><h2>투표 완료 수별 사용자 비중</h2><span id="completion-basis">전체 가입자 기준</span></div><div id="completion-chart"></div></section>
+        <p class="chart-color-note">완료 현황은 파랑 계열로 구분합니다. 아래 색상은 하우스를 나타내며, 후보 순위는 배지로 표시합니다.</p>
         <div class="house-charts" id="candidate-charts"></div>
       </div>
       <div id="users-view" hidden>
         <section class="chart-panel users-panel"><div class="panel-heading"><h2>사용자별 투표 내역</h2><span id="users-total"></span></div>
           <form class="search-form" id="admin-search-form"><label class="sr-only" for="admin-search">전화번호 뒷자리 또는 닉네임</label><input id="admin-search" type="search" maxlength="30" placeholder="전화번호 뒷자리 또는 닉네임"><button class="primary-button" type="submit">검색</button><button id="admin-search-reset" type="button">전체 보기</button></form>
-          <p class="users-help">사용자 계정은 유지됩니다. 삭제한 하우스에는 다시 투표할 수 있습니다.</p>
+          <p class="users-help">사용자 계정은 유지됩니다. 삭제한 하우스에는 다시 투표할 수 있습니다. 사용자 로그아웃은 모든 브라우저의 기존 자동로그인만 해제합니다.</p>
           <div class="users-table-scroll" tabindex="0" role="region" aria-label="사용자 투표 표, 작은 화면에서는 좌우 스크롤"><table class="users-table"><thead><tr><th scope="col">사용자</th><th scope="col">투표 수</th><th scope="col">Outsight D.T</th><th scope="col">서비스생산시스템</th><th scope="col">컨설팅&amp;엑셀러레이팅</th><th scope="col">애자일</th><th scope="col">관리</th></tr></thead><tbody id="admin-users-rows"></tbody></table></div>
           <div class="pagination"><button id="users-prev" type="button">← 이전</button><span id="users-page"></span><button id="users-next" type="button">다음 →</button></div>
         </section>
@@ -43,6 +44,13 @@
     <p class="delete-warning">삭제한 투표는 복원할 수 없습니다. 사용자 계정은 유지되며 해당 하우스에 다시 투표할 수 있습니다.</p>
     <p class="admin-error" id="admin-delete-error" role="alert" hidden></p>
     <div class="vote-actions"><button class="vote-no" id="admin-delete-cancel" type="button" autofocus>취소</button><button class="danger-button" id="admin-delete-confirm" type="button">투표 삭제</button></div>
+  </dialog>
+  <dialog class="vote-dialog admin-logout-dialog" id="admin-user-logout-dialog" aria-labelledby="admin-user-logout-title">
+    <h2 id="admin-user-logout-title">이 사용자를 로그아웃할까요?</h2>
+    <p id="admin-user-logout-detail" class="vote-detail"></p>
+    <p class="vote-detail">모든 브라우저의 기존 자동로그인이 해제됩니다. 새로고침·재접속·화면 재활성화 시 로그인이 필요하며, 전화번호를 다시 입력하면 재로그인할 수 있습니다. 가입 정보와 투표 내역은 유지됩니다.</p>
+    <p class="admin-error" id="admin-user-logout-error" role="alert" hidden></p>
+    <div class="vote-actions"><button id="admin-user-logout-cancel" type="button" autofocus>취소</button><button class="primary-button" id="admin-user-logout-confirm" type="button">사용자 로그아웃</button></div>
   </dialog>
   <footer class="admin-footer">Innovation Award O.S.C.A · Work Innovation CoE</footer>
 </body></html>

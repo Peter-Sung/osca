@@ -18,7 +18,8 @@ export function createHandler({ url, secretKey, fetchImpl = fetch }) {
       if (raw.length > 2048) throw new Error("body too large");
       body = JSON.parse(raw);
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("invalid body");
-      if (!['lookup', 'login', 'vote'].includes(body.action)) throw new Error("invalid action");
+      if (!['lookup', 'restore', 'login', 'vote'].includes(body.action)) throw new Error("invalid action");
+      if (body.loginVersion != null && (!Number.isInteger(body.loginVersion) || body.loginVersion < 0 || body.loginVersion > 2147483647)) throw new Error("invalid login version");
       if (typeof body.phone !== "string") throw new Error("invalid phone");
       body.phone = body.phone.replace(/[-\s]/g, "");
       if (!/^010\d{8}$/.test(body.phone)) throw new Error("invalid phone");
@@ -40,7 +41,8 @@ export function createHandler({ url, secretKey, fetchImpl = fetch }) {
         body: JSON.stringify({ p_action: body.action, p_phone: body.phone, p_nickname: body.nickname,
           p_house: body.action === "vote" ? body.house : null,
           p_candidate: body.action === "vote" ? body.candidate : null,
-          p_user_id: body.action === "vote" ? body.userId ?? null : null }),
+          p_user_id: body.action === "vote" ? body.userId ?? null : null,
+          p_login_version: ['restore', 'vote'].includes(body.action) ? body.loginVersion ?? 0 : null }),
         signal: AbortSignal.timeout(10000),
       });
       if (!result.ok) {

@@ -2,7 +2,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const store = require("./vote-store.js");
-const user = { id: "11111111-1111-4111-8111-111111111111", phone: "01000009901", nickname: "검증계정" };
+const user = { id: "11111111-1111-4111-8111-111111111111", phone: "01000009901", nickname: "검증계정", loginVersion: 0 };
 const record = { candidate: 2, votedAt: "2026-10-04T00:00:00Z" };
 const found = (votes = {}) => ({ status: "found", user, votes });
 const missing = { status: "missing", user: null, votes: {} };
@@ -35,10 +35,12 @@ test("로컬 사용자 없이 진입하면 기존 임시 투표만 폐기하고 
   assert.equal(storage.data.has(store.legacyKey), false);
   assert.equal(storage.data.get("other"), "유지");
 });
-test("자동로그인은 전화번호만 비교하고 DB 닉네임과 투표를 복원한다", async () => {
+test("자동로그인은 전화번호와 로그인 버전을 확인하고 DB 닉네임과 투표를 복원한다", async () => {
   const storage = memoryStorage({ [store.key]: JSON.stringify({ ...user, nickname: "손상된 닉네임 정보" }) });
   const client = makeClient(storage, (_, options) => {
     assert.equal(JSON.parse(options.body).phone, user.phone);
+    assert.equal(JSON.parse(options.body).action, "restore");
+    assert.equal(JSON.parse(options.body).loginVersion, 0);
     return json(found({ O: record }));
   });
   await client.restore();
@@ -46,6 +48,44 @@ test("자동로그인은 전화번호만 비교하고 DB 닉네임과 투표를 
   assert.equal(client.state.votes.O.candidate, 2);
   assert.deepEqual(JSON.parse(storage.getItem(store.key)), user);
   assert.equal(storage.data.size, 1);
+});
+
+test("관리자 로그아웃 응답은 사용자 로컬 정보만 제거하며 전화번호 재입력 시 새 버전으로 로그인한다", async () => {
+  const storage = memoryStorage({ [store.key]: JSON.stringify(user), other: "유지" });
+  const client = makeClient(storage, (_, options) => JSON.parse(options.body).action === "restore"
+    ? json({ status: "logged-out", user: null, votes: {} })
+    : json({ ...found({ O: record }), user: { ...user, loginVersion: 2 } }));
+  await client.restore();
+  assert.equal(client.state.status, "guest"); assert.equal(storage.getItem(store.key), null);
+  assert.equal(storage.getItem("other"), "유지");
+  await client.login(user);
+  assert.equal(client.state.user.loginVersion, 2); assert.equal(client.state.votes.O.candidate, 2);
+  assert.equal(JSON.parse(storage.getItem(store.key)).loginVersion, 2);
+});
+
+test("이전 버전 로컬 사용자 정보는 0으로 복원하고 DB 장애에는 삭제하지 않는다", async () => {
+  const legacy = { ...user }; delete legacy.loginVersion;
+  const storage = memoryStorage({ [store.key]: JSON.stringify(legacy) });
+  const client = makeClient(storage, (_, options) => {
+    assert.equal(JSON.parse(options.body).loginVersion, 0); return Promise.reject(new TypeError("offline"));
+  });
+  await assert.rejects(client.restore());
+  assert.equal(storage.getItem(store.key), JSON.stringify(legacy));
+});
+
+test("로그아웃된 이전 버전으로 투표하거나 오류 후 재조회해도 로그인 상태를 되살리지 않는다", async () => {
+  for (const failed of [false, true]) {
+    const storage = memoryStorage({ [store.key]: JSON.stringify(user) });
+    const client = makeClient(storage, (_, options) => {
+      const body = JSON.parse(options.body); assert.equal(body.loginVersion, 0);
+      if (body.action === "vote" && failed) return Promise.reject(new TypeError("offline"));
+      assert.ok(body.action === "vote" || body.action === "restore");
+      return json({ status: "logged-out", user: null, votes: {} });
+    });
+    const result = await client.vote(user, "S", 4);
+    assert.equal(result.status, "logged-out"); assert.equal(client.state.status, "guest");
+    assert.equal(storage.getItem(store.key), null);
+  }
 });
 test("DB 조회 실패는 로컬 정보를 유지하고 미확인 상태에서 재시도할 수 있다", async () => {
   const raw = JSON.stringify(user), storage = memoryStorage({ [store.key]: raw });
@@ -127,7 +167,7 @@ test("이전 자동로그인 응답이 새 로그인 결과를 덮어쓰지 않�
   const storage = memoryStorage({ [store.key]: JSON.stringify(user) });
   let finish;
   const second = { ...user, phone: "01000009902", nickname: "새계정" };
-  const client = makeClient(storage, (_, options) => JSON.parse(options.body).action === "lookup"
+  const client = makeClient(storage, (_, options) => JSON.parse(options.body).action === "restore"
     ? new Promise((resolve) => { finish = resolve; }) : json({ ...found(), user: second }));
   const restoring = client.restore();
   await client.login(second);

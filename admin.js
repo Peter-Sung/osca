@@ -1,10 +1,13 @@
 // HttpOnly 관리자 세션으로 통계·사용자 검색·확인 후 투표 삭제를 처리합니다.
 const houseNames = { O: "Outsight D.T", S: "서비스생산시스템", C: "컨설팅&엑셀러레이팅", A: "애자일" };
 const houseColors = { O: "#e5007d", S: "#66855c", C: "#c99842", A: "#9073ae" };
+const completionColors = ["#aebac8", "#9bc9ef", "#649cce", "#386eaa", "#173f73"];
+const percentFormat = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 });
 const $ = (id) => document.getElementById(id);
 const timeFormat = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
 let expiresAt = 0, page = 1, total = 0, search = "", users = [], currentView = "dashboard";
 let userRequest = 0, dashboardRequest = 0, pendingDelete, deleting = false, loginBusy = false;
+let pendingUserLogout, userLogoutBusy = false;
 function node(tag, text, className) {
   const element = document.createElement(tag);
   if (text !== undefined) element.textContent = text;
@@ -19,6 +22,7 @@ function showLogin(message = "") {
   $("completion-chart").replaceChildren(); $("candidate-charts").replaceChildren();
   $("admin-login-error").textContent = message; $("admin-login-error").hidden = !message;
   if ($("admin-delete-dialog").open) $("admin-delete-dialog").close();
+  if ($("admin-user-logout-dialog").open) $("admin-user-logout-dialog").close();
 }
 function notice(message) { $("admin-notice").textContent = message; $("admin-notice").hidden = !message; }
 function handleError(error) {
@@ -46,13 +50,47 @@ function showWorkspace() {
   $("admin-login").hidden = true; $("admin-workspace").hidden = false;
   $("admin-password").value = ""; notice(""); updateSessionTime();
 }
-function barRow(label, count, maximum, color) {
+function share(count, total) { return total ? count / total * 100 : 0; }
+function percent(value) { return `${percentFormat.format(value)}%`; }
+function candidateStandings(candidates) {
+  const total = candidates.reduce((sum, item) => sum + item.votes, 0);
+  const maximum = Math.max(0, ...candidates.map((item) => item.votes));
+  const leaders = maximum ? candidates.filter((item) => item.votes === maximum) : [];
+  const runnerUp = [...candidates].sort((a, b) => b.votes - a.votes)[1]?.votes || 0;
+  return { total, leaders, gap: share(maximum - runnerUp, total),
+    rows: candidates.map((item) => ({ ...item, percentage: share(item.votes, total),
+      rank: item.votes ? 1 + candidates.filter((other) => other.votes > item.votes).length : null,
+      tied: item.votes > 0 && candidates.filter((other) => other.votes === item.votes).length > 1 })) };
+}
+function barRow(item, color) {
   const row = node("div", undefined, "bar-row");
+  const label = node("div", undefined, "bar-label"); label.append(node("span", `후보 ${item.candidate}`));
+  if (item.rank) label.append(node("small", `${item.tied ? "공동 " : ""}${item.rank}위`, item.rank === 1 ? "rank-badge leader-badge" : "rank-badge"));
   const track = node("div", undefined, "bar-track"); track.setAttribute("aria-hidden", "true");
-  const fill = node("div", undefined, "bar-fill"); fill.style.width = `${maximum ? count / maximum * 100 : 0}%`;
+  const fill = node("div", undefined, "bar-fill"); fill.style.width = `${item.percentage}%`;
   fill.style.backgroundColor = color; track.append(fill);
-  row.append(node("span", label), track, node("span", `${count.toLocaleString()}명`, "bar-total"));
+  const value = node("div", undefined, "bar-total");
+  value.append(node("strong", percent(item.percentage)), node("small", `${item.votes.toLocaleString()}건`));
+  row.append(label, track, value);
   return row;
+}
+function renderCompletion(data) {
+  $("completion-basis").textContent = `전체 가입자 ${data.registered.toLocaleString()}명 = 100%`;
+  const stack = node("div", undefined, "completion-stack"); stack.setAttribute("aria-hidden", "true");
+  const legend = node("div", undefined, "completion-legend");
+  for (const item of data.completion) {
+    const percentage = share(item.users, data.registered), color = completionColors[item.count];
+    if (percentage) {
+      const segment = node("div", undefined, "completion-segment"); segment.style.width = `${percentage}%`;
+      segment.style.backgroundColor = color; stack.append(segment);
+    }
+    const entry = node("div", undefined, "completion-item"), label = node("div", undefined, "completion-label");
+    const dot = node("span", undefined, "chart-dot"); dot.style.backgroundColor = color; dot.setAttribute("aria-hidden", "true");
+    label.append(dot, node("span", item.count ? `${item.count}개 완료` : "미투표"));
+    entry.append(label, node("strong", percent(percentage)), node("small", `${item.users.toLocaleString()}명`)); legend.append(entry);
+  }
+  $("completion-chart").replaceChildren(stack, legend);
+  if (!data.registered) $("completion-chart").append(node("p", "아직 가입한 사용자가 없습니다.", "chart-empty"));
 }
 async function loadDashboard() {
   const sequence = ++dashboardRequest;
@@ -67,19 +105,26 @@ async function loadDashboard() {
     const value = node("div", count.toLocaleString(), "metric-value"); value.append(node("small", unit));
     card.append(node("p", label, "metric-label"), value, node("p", description, "metric-note")); return card;
   }));
-  const maxUsers = Math.max(1, ...data.completion.map((item) => item.users));
-  $("completion-chart").replaceChildren(...data.completion.map((item) =>
-    barRow(item.count ? `${item.count}개 투표 완료` : "0개 · 미투표", item.users, maxUsers, item.count === 4 ? "#e5007d" : "#6d8660")));
+  renderCompletion(data);
   $("candidate-charts").replaceChildren(...Object.entries(houseNames).map(([house, name]) => {
     const card = node("section", undefined, "chart-panel house-chart");
-    const heading = node("div", undefined, "panel-heading"); heading.append(node("h2", name)); card.append(heading);
     const candidates = data.candidates.filter((item) => item.house === house);
-    const maximum = Math.max(1, ...candidates.map((item) => item.votes));
-    for (const item of candidates) {
-      const row = barRow(`후보 ${item.candidate}`, item.votes, maximum, houseColors[house]);
-      row.lastChild.textContent = `${item.votes.toLocaleString()}건`; card.append(row);
+    const standings = candidateStandings(candidates);
+    card.style.setProperty("--house-color", houseColors[house]);
+    const heading = node("div", undefined, "panel-heading");
+    const title = node("div", undefined, "house-title"), dot = node("span", undefined, "chart-dot"); dot.setAttribute("aria-hidden", "true");
+    title.append(dot, node("h2", name)); heading.append(title, node("span", `총 ${standings.total.toLocaleString()}건`)); card.append(heading);
+    if (standings.leaders.length) {
+      const summary = node("div", undefined, "leader-summary");
+      summary.append(node("strong", `${standings.leaders.length > 1 ? "공동 " : ""}1위 · ${standings.leaders.map((item) => `후보 ${item.candidate}`).join(" · ")}`));
+      summary.append(node("span", `${standings.leaders.length > 1 ? "각 " : ""}${percent(share(standings.leaders[0].votes, standings.total))} · ${standings.leaders.length > 1 ? "선두 간 격차" : "2위와 격차"} ${percentFormat.format(standings.gap)}%p`));
+      card.append(summary);
     }
-    if (!candidates.some((item) => item.votes)) card.append(node("p", "아직 저장된 투표가 없습니다.", "chart-empty"));
+    card.append(node("p", "이 하우스의 총투표 = 100%", "chart-basis"));
+    const axis = node("div", undefined, "chart-axis"); axis.setAttribute("aria-hidden", "true");
+    for (const value of ["0%", "50%", "100%"]) axis.append(node("span", value)); card.append(axis);
+    for (const item of standings.rows) card.append(barRow(item, houseColors[house]));
+    if (!standings.total) card.append(node("p", "아직 저장된 투표가 없습니다. 득표율과 순위는 투표 후 표시됩니다.", "chart-empty"));
     return card;
   }));
 }
@@ -104,7 +149,15 @@ function renderUsers() {
     }
     const controls = node("td"), all = node("button", "전체 투표 삭제", "delete-all"); all.type = "button";
     all.disabled = Object.keys(votes).length === 0; all.addEventListener("click", () => openDelete({ user, votes }, null));
-    controls.append(all); row.append(controls); return row;
+    const logout = node("button", "사용자 로그아웃", "user-logout"); logout.type = "button";
+    logout.setAttribute("aria-label", `${user.nickname || user.phone.slice(-4)} · 사용자 로그아웃`);
+    logout.addEventListener("click", () => {
+      pendingUserLogout = user.id;
+      $("admin-user-logout-detail").textContent = `${user.nickname || "닉네임 미입력"} · 전화번호 뒷자리 ${user.phone.slice(-4)}`;
+      $("admin-user-logout-error").hidden = true;
+      $("admin-user-logout-dialog").showModal();
+    });
+    controls.append(all, logout); row.append(controls); return row;
   }));
   if (!users.length) {
     const row = node("tr"), cell = node("td", "조회된 사용자가 없습니다."); cell.colSpan = 7; row.append(cell); $("admin-users-rows").append(row);
@@ -165,6 +218,25 @@ for (const [id, delta] of [["users-prev", -1], ["users-next", 1]]) $(id).addEven
 });
 $("admin-delete-cancel").addEventListener("click", () => { if (!deleting) $("admin-delete-dialog").close(); });
 $("admin-delete-dialog").addEventListener("cancel", (event) => { if (deleting) event.preventDefault(); });
+$("admin-user-logout-cancel").addEventListener("click", () => { if (!userLogoutBusy) $("admin-user-logout-dialog").close(); });
+$("admin-user-logout-dialog").addEventListener("cancel", (event) => { if (userLogoutBusy) event.preventDefault(); });
+$("admin-user-logout-confirm").addEventListener("click", async () => {
+  if (userLogoutBusy || !pendingUserLogout) return;
+  userLogoutBusy = true;
+  $("admin-user-logout-confirm").disabled = $("admin-user-logout-cancel").disabled = true;
+  $("admin-user-logout-error").hidden = true;
+  try {
+    await request("logout-user", { userId: pendingUserLogout });
+    $("admin-user-logout-dialog").close(); pendingUserLogout = undefined;
+    notice("사용자의 기존 자동로그인을 해제했습니다. 가입 정보와 투표 내역은 유지됩니다.");
+  } catch (error) {
+    if (error.status === 401) handleError(error);
+    else { $("admin-user-logout-error").textContent = error.message; $("admin-user-logout-error").hidden = false; }
+  } finally {
+    userLogoutBusy = false;
+    $("admin-user-logout-confirm").disabled = $("admin-user-logout-cancel").disabled = false;
+  }
+});
 $("admin-delete-confirm").addEventListener("click", async () => {
   if (deleting || !pendingDelete) return;
   deleting = true; $("admin-delete-confirm").disabled = $("admin-delete-cancel").disabled = true;

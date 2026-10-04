@@ -23,7 +23,8 @@ export function createAdminHandler({ url, secretKey, fetchImpl = fetch }) {
       if (raw.length > 8192) throw new Error();
       body = JSON.parse(raw);
       if (!body || typeof body !== "object" || Array.isArray(body)
-        || !["login", "session", "dashboard", "users", "delete", "logout"].includes(body.action)) throw new Error();
+        || !["login", "session", "dashboard", "users", "delete", "logout", "logout-user"].includes(body.action)) throw new Error();
+      if (body.action === "logout-user" && !uuid.test(body.userId ?? "")) throw new Error();
       if (body.action === "login" && (typeof body.password !== "string" || !body.password
         || new TextEncoder().encode(body.password).length > 64)) throw new Error();
       if (body.action === "users" && (typeof (body.search ?? "") !== "string" || (body.search ?? "").length > 30
@@ -41,7 +42,9 @@ export function createAdminHandler({ url, secretKey, fetchImpl = fetch }) {
       } else {
         token = request.headers.get("Authorization")?.match(/^Bearer ([0-9a-f]{64})$/)?.[1];
         if (!token) return reply({ message: "관리자 로그인이 필요합니다." }, 401);
-        result = await rpc("osca_admin_dispatch", { p_token_hash: await hash(token), p_action: body.action,
+        result = body.action === "logout-user"
+          ? await rpc("osca_admin_logout_user", { p_token_hash: await hash(token), p_user_id: body.userId })
+          : await rpc("osca_admin_dispatch", { p_token_hash: await hash(token), p_action: body.action,
           p_search: (body.search ?? "").trim(), p_page: body.page ?? 1, p_user_id: body.userId ?? null,
           p_house: body.house ?? null, p_expected: body.expected ?? null, p_reason: (body.reason ?? "").trim() });
       }

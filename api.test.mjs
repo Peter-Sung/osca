@@ -55,3 +55,15 @@ test("네트워크 예외를 저장 실패로 전달한다", async () => {
   const handler = createHandler({ url: "https://db.example.test", secretKey: "sb_secret_test", fetchImpl: async () => { throw new TypeError("offline"); } });
   assert.equal((await handler(request({ action: "vote", phone: "01000009901", house: "S", candidate: 4 }))).status, 503);
 });
+
+test("자동로그인·투표의 로그인 버전은 정수만 받고 DB에 전달한다", async () => {
+  const handler = createHandler({ url: "https://db.example.test", secretKey: "sb_secret_test", fetchImpl: async (_, options) => {
+    const body = JSON.parse(options.body); assert.equal(body.p_action, "restore"); assert.equal(body.p_login_version, 3);
+    return new Response(JSON.stringify({ status: "logged-out", user: null, votes: {} }));
+  } });
+  const response = await handler(request({ action: "restore", phone: "01000009901", loginVersion: 3 }));
+  assert.equal(response.status, 200); assert.equal((await response.json()).status, "logged-out");
+  for (const loginVersion of [-1, 1.5, "3", 2147483648]) {
+    assert.equal((await handler(request({ action: "restore", phone: "01000009901", loginVersion }))).status, 400);
+  }
+});

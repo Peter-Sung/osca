@@ -38,18 +38,22 @@ const voteStore = (() => {
       try {
         const user = JSON.parse(raw);
         if (!user || typeof user.phone !== "string") throw new Error("invalid user");
-        return { ...user, ...validateIdentity({ phone: user.phone }) };
+        const loginVersion = user.loginVersion ?? 0;
+        if (!Number.isInteger(loginVersion) || loginVersion < 0 || loginVersion > 2147483647) throw new Error("invalid login version");
+        return { ...user, ...validateIdentity({ phone: user.phone }), loginVersion };
       } catch { clearUser(); return null; }
     }
     function checkedSnapshot(data) {
-      if (!data || !['found', 'missing', 'new', 'saved', 'duplicate'].includes(data.status)
+      if (!data || !['found', 'missing', 'logged-out', 'new', 'saved', 'duplicate'].includes(data.status)
           || !data.votes || typeof data.votes !== "object" || Array.isArray(data.votes)) throw new Error(retryMessage);
       if (!data.user) {
-        if (Object.keys(data.votes).length || data.status !== "missing") throw new Error(retryMessage);
+        if (Object.keys(data.votes).length || !['missing', 'logged-out'].includes(data.status)) throw new Error(retryMessage);
         return data;
       }
       if (typeof data.user.id !== "string" || !/^010\d{8}$/.test(data.user.phone)) throw new Error(retryMessage);
       validateIdentity(data.user);
+      if (data.user.loginVersion != null && (!Number.isInteger(data.user.loginVersion)
+        || data.user.loginVersion < 0 || data.user.loginVersion > 2147483647)) throw new Error(retryMessage);
       for (const [house, vote] of Object.entries(data.votes)) {
         if (!vote || !validVote(house, vote.candidate) || !Number.isFinite(Date.parse(vote.votedAt))) throw new Error(retryMessage);
       }
@@ -78,7 +82,7 @@ const voteStore = (() => {
       restoreRequest += 1;
       if (!data.user) { clearUser(); return data; }
       const identity = validateIdentity(data.user);
-      const user = { id: data.user.id, ...identity };
+      const user = { id: data.user.id, ...identity, loginVersion: data.user.loginVersion ?? 0 };
       try { storage.setItem(key, JSON.stringify(user)); } catch { storageFailure(); }
       emit({ user, votes: data.votes, status: "ready", error: "" });
       return data;
@@ -90,7 +94,7 @@ const voteStore = (() => {
       if (!user) { emit({ user: null, votes: {}, status: "guest", error: "" }); return; }
       emit({ status: "checking", error: "" });
       try {
-        const data = await request("lookup", user);
+        const data = await request("restore", user, { loginVersion: user.loginVersion });
         if (requestId !== restoreRequest) return;
         adopt(data);
       } catch (error) {
@@ -114,9 +118,10 @@ const voteStore = (() => {
       if (!validVote(house, candidate)) throw new Error("투표할 후보를 다시 확인해 주세요.");
       const normalized = validateIdentity(identity);
       let data;
-      try { data = await request("vote", normalized, { house, candidate, userId: identity.id ?? null }); }
+      try { data = await request("vote", normalized, { house, candidate, userId: identity.id ?? null, loginVersion: identity.loginVersion ?? 0 }); }
       catch (error) {
-        const recovered = await request("lookup", normalized).catch(() => null);
+        const recovered = await request(identity.id ? "restore" : "lookup", normalized, { loginVersion: identity.loginVersion ?? 0 }).catch(() => null);
+        if (recovered?.status === "logged-out") return adopt(recovered);
         if (!recovered?.user || !recovered.votes[house]) throw error;
         data = { ...recovered, status: "duplicate", recovered: true };
       }

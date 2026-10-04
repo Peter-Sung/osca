@@ -190,11 +190,6 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 .room-voted-sign strong { display: block; font-size: clamp(12px, 2.4cqw, 18px); font-weight: 600; }
 .room-voted-sign div > span { display: block; margin-top: 3px; font-size: 11px; }
-.village-status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; }
-.village-status p { margin: 0; color: #355742; font-size: 14px; }
-.local-data-open { min-height: 40px; padding: 8px 14px; border: 1px dashed #bda989; border-radius: 12px; background: #fffbf180; color: #756957; font-size: 12px; cursor: pointer; }
-.local-data-open:hover { background: #fffbf1; }
-.local-data-open:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
 
 .candidate-panels { position: absolute; inset: 0; pointer-events: none; }
 .candidate-panel {
@@ -404,7 +399,7 @@ body:has(dialog[open]) { overflow: hidden; }
 .board-vote:hover { background: #ffe9a82b; box-shadow: 0 0 16px #ffe29d80; }
 .board-vote:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
 .board-vote:disabled { cursor: default; }
-.board-vote:disabled span {
+.board-vote.has-label span {
   display: grid;
   place-items: center;
   height: 100%;
@@ -448,25 +443,110 @@ body:has(dialog[open]) { overflow: hidden; }
 .vote-no:hover { background: #f1e8d7; }
 .vote-actions button:focus-visible { outline: 3px solid #b79550; outline-offset: 3px; }
 
-.local-data-dialog { width: min(640px, calc(100vw - 32px)); }
-.local-data-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border: 1px solid #d7c3a4; border-radius: 50%; background: #fffaf0; color: #65513c; font-size: 24px; cursor: pointer; }
-.local-data-close:focus-visible, .local-data-reset:focus-visible { outline: 3px solid #b79550; outline-offset: 3px; }
-.local-data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-.local-data-table th { background: #eee9d9; font-weight: 500; }
-.local-data-table th, .local-data-table td { padding: 10px 8px; border-bottom: 1px solid #e4d8c4; }
-.local-data-table td:first-child { color: #355742; font-weight: 600; }
-.local-data-raw { margin-top: 20px; font-size: 13px; }
-.local-data-raw summary { cursor: pointer; }
-.local-data-raw pre { max-height: 180px; padding: 12px; overflow: auto; border: 1px solid #e4d8c4; border-radius: 8px; background: #f4eedf; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.local-data-note { margin: 18px 0 0; color: #756957; font-size: 12px; line-height: 1.7; }
-.local-data-result { color: #355742; font-size: 13px; line-height: 1.6; }
-.local-data-result:empty { display: none; }
-.local-data-reset { min-height: 44px; margin-top: 16px; padding: 10px 16px; border: 1px solid #a45c40; border-radius: 12px; background: #fff6ed; color: #954f35; font-weight: 500; cursor: pointer; }
-.local-data-reset:hover { background: #f6e6d6; }
-.reset-confirm { margin-top: 18px; padding-top: 14px; border-top: 1px solid #d7c3a4; }
-.reset-confirm p { margin: 0 0 12px; font-size: 14px; }
-.reset-confirm .local-data-reset { margin-top: 0; }
-
+.user-status {
+  position: absolute;
+  top: 2.5%;
+  right: 1.5%;
+  z-index: 2;
+  max-width: 13.5%;
+  text-align: left;
+  color: #355742;
+  font-size: clamp(10px, 1.3cqw, 19px);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.user-status button, .user-status > span {
+  display: block;
+  padding: 8px 12px;
+  border: 1px solid #bda576;
+  border-radius: 16px;
+  background: #fffaf0f2;
+  box-shadow: 0 3px 12px #59432220;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.user-status button { padding: 6px 8px; cursor: pointer; white-space: nowrap; }
+.user-status > span { word-break: keep-all; overflow-wrap: normal; }
+#user-greeting { padding: 8px 12px; text-align: left; white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+#user-nickname { color: #e5007d; font-weight: 700; }
+.greeting-text { font-weight: 300; }
+.user-status button:hover { background: #fff; }
+.user-status button:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
+#login-retry { margin-top: 6px; }
+.my-votes-dialog { width: min(626px, calc(100vw - 32px)); padding: 26px; }
+.my-votes-dialog h2 { padding-right: 32px; }
+.my-votes-table { width: 100%; margin-top: 24px; border-collapse: collapse; table-layout: fixed; font-size: 14px; text-align: left; }
+.my-votes-table .house-column { width: 18%; }
+.my-votes-table .candidate-column { width: 22%; }
+.my-votes-table th, .my-votes-table td { padding: 10px 8px; border-bottom: 1px solid #e1d2ba; overflow-wrap: break-word; }
+.my-votes-table thead { background: #eee8d7; }
+.my-votes-table thead th { font-size: 12px; font-weight: 600; }
+.my-votes-table tbody th { color: #355742; font-weight: 600; }
+.my-votes-table td:last-child { font-variant-numeric: tabular-nums; }
+.identity-dialog {
+  width: min(460px, calc(100vw - 32px));
+  border: 3px solid #bca270;
+  background: radial-gradient(ellipse at top, #fffdf5, #f4eedf);
+  box-shadow: 0 0 0 5px #eee0bd, 0 24px 70px #21190f66;
+}
+.identity-crest {
+  width: fit-content;
+  margin: 0 auto 20px;
+  padding: 8px 18px;
+  border: 1px solid #bda576;
+  border-radius: 999px;
+  background: #355742;
+  color: #fff3d3;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.identity-dialog .vote-eyebrow { padding-right: 18px; font-size: 12px; }
+.identity-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #d7c3a4;
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #65513c;
+  font-size: 22px;
+  cursor: pointer;
+}
+.identity-close:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
+.identity-dialog label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.field-required, .field-optional { font-size: 11px; font-weight: 400; color: #82735d; }
+.identity-dialog input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #c9b994;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #493e30;
+  font: inherit;
+  font-size: 16px;
+}
+.identity-dialog input:focus { outline: 2px solid #64734f; outline-offset: 2px; }
+.identity-dialog input[aria-invalid="true"] { border-color: #a45c40; }
+.field-help { margin: 8px 0 22px; color: #82735d; font-size: 12px; line-height: 1.6; }
+.identity-error { padding: 12px; border: 1px solid #e5c3a6; border-radius: 12px; background: #fff2e4; color: #954f35; font-size: 13px; line-height: 1.6; }
+.identity-note { margin: 18px 0 0; color: #82735d; font-size: 12px; line-height: 1.6; text-align: center; }
+.vote-actions button:disabled, .identity-close:disabled { cursor: wait; opacity: 0.65; }
+@media (max-width: 640px) {
+  .user-status { top: -54px; right: 0; max-width: 100%; font-size: 13px; }
+  .user-status > span { display: inline-block; }
+  #login-retry { display: inline-block; margin: 0 0 0 6px; }
+  .my-votes-dialog { padding: 24px 18px; }
+  .my-votes-table { font-size: 12px; }
+  .my-votes-table .house-column { width: 22%; }
+  .my-votes-table .candidate-column { width: 27%; }
+  .my-votes-table thead th { white-space: nowrap; }
+  .my-votes-table th, .my-votes-table td { padding: 10px 6px; }
+}
 .back-link {
   position: absolute;
   top: 16px;
@@ -537,10 +617,6 @@ body:has(dialog[open]) { overflow: hidden; }
   }
   .mobile-entrances a.has-voted { border-color: #bb9f60; background: #355742; color: #fff3d3; }
   .mobile-voted-label { font-size: 10px; font-weight: 400; color: #e4c37a; }
-  .village-status { gap: 8px 14px; margin-top: 12px; }
-  .village-status p { font-size: 12px; }
-  .local-data-table { font-size: 12px; }
-  .local-data-table th, .local-data-table td { padding: 8px 4px; }
   .back-link { top: 8px; left: 8px; padding: 8px 12px; font-size: 18px; }
 }
 

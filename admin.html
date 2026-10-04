@@ -1,0 +1,48 @@
+<!-- 관리자 비밀번호 인증과 투표 현황·사용자 검색 화면을 표시합니다. -->
+<!doctype html>
+<html lang="ko"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSCA 관리자</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css">
+  <script src="/admin.js" defer></script>
+</head><body class="admin-body">
+  <header class="admin-header"><a class="admin-brand" href="/">OSCA<span>관리자</span></a><a class="village-link" href="/">마을로 돌아가기 ↗</a></header>
+  <main class="admin-main">
+    <section class="admin-login" id="admin-login">
+      <p class="admin-eyebrow">OSCA · ADMINISTRATOR</p><h1>관리자 로그인</h1>
+      <p class="admin-description">참여와 투표 현황을 한눈에 확인하세요.</p>
+      <form id="admin-login-form"><label for="admin-password">관리자 비밀번호</label>
+        <input id="admin-password" type="password" autocomplete="current-password" maxlength="64" required>
+        <p class="admin-error" id="admin-login-error" role="alert" hidden></p>
+        <button class="primary-button" id="admin-login-submit" type="submit">로그인</button>
+      </form><p class="session-note">관리자 세션은 로그인 후 30분 동안 유지됩니다.</p>
+    </section>
+    <section id="admin-workspace" hidden>
+      <div class="workspace-heading"><div><p class="admin-eyebrow">OSCA · VOTING OVERVIEW</p><h1>투표 관리</h1></div>
+        <div class="admin-tools"><span id="admin-session-time"></span><button id="admin-refresh" type="button">새로고침</button><button id="admin-logout" type="button">로그아웃</button></div>
+      </div>
+      <nav class="admin-nav" aria-label="관리 화면"><button class="active" id="dashboard-tab" data-view="dashboard" type="button" aria-pressed="true">대시보드</button><button id="users-tab" data-view="users" type="button" aria-pressed="false">사용자 · 투표 내역</button></nav>
+      <p class="admin-notice" id="admin-notice" role="status" hidden></p>
+      <div id="dashboard-view">
+        <div class="metric-grid" id="admin-metrics"></div>
+        <section class="chart-panel"><div class="panel-heading"><h2>투표 완료 수별 사용자</h2><span>전체 가입자 기준</span></div><div id="completion-chart"></div></section>
+        <div class="house-charts" id="candidate-charts"></div>
+      </div>
+      <div id="users-view" hidden>
+        <section class="chart-panel users-panel"><div class="panel-heading"><h2>사용자별 투표 내역</h2><span id="users-total"></span></div>
+          <form class="search-form" id="admin-search-form"><label class="sr-only" for="admin-search">전화번호 뒷자리 또는 닉네임</label><input id="admin-search" type="search" maxlength="30" placeholder="전화번호 뒷자리 또는 닉네임"><button class="primary-button" type="submit">검색</button><button id="admin-search-reset" type="button">전체 보기</button></form>
+          <p class="users-help">사용자 계정은 유지됩니다. 삭제한 하우스에는 다시 투표할 수 있습니다.</p>
+          <div class="users-table-scroll" tabindex="0" role="region" aria-label="사용자 투표 표, 작은 화면에서는 좌우 스크롤"><table class="users-table"><thead><tr><th scope="col">사용자</th><th scope="col">투표 수</th><th scope="col">Outsight D.T</th><th scope="col">서비스생산시스템</th><th scope="col">컨설팅&amp;엑셀러레이팅</th><th scope="col">애자일</th><th scope="col">관리</th></tr></thead><tbody id="admin-users-rows"></tbody></table></div>
+          <div class="pagination"><button id="users-prev" type="button">← 이전</button><span id="users-page"></span><button id="users-next" type="button">다음 →</button></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <dialog class="vote-dialog admin-delete-dialog" id="admin-delete-dialog" aria-labelledby="admin-delete-title">
+    <p class="admin-eyebrow">투표 삭제 확인</p><h2 id="admin-delete-title"></h2><p id="admin-delete-detail"></p>
+    <label for="admin-delete-reason">삭제 사유 <span>선택</span></label><textarea id="admin-delete-reason" maxlength="200" rows="2" placeholder="요청 내용이나 처리 사유를 남겨주세요."></textarea>
+    <p class="delete-warning">삭제한 투표는 복원할 수 없습니다. 사용자 계정은 유지되며 해당 하우스에 다시 투표할 수 있습니다.</p>
+    <p class="admin-error" id="admin-delete-error" role="alert" hidden></p>
+    <div class="vote-actions"><button class="vote-no" id="admin-delete-cancel" type="button" autofocus>취소</button><button class="danger-button" id="admin-delete-confirm" type="button">투표 삭제</button></div>
+  </dialog>
+  <footer class="admin-footer">Innovation Award O.S.C.A · Work Innovation CoE</footer>
+</body></html>

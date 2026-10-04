@@ -1,0 +1,9 @@
+project_id = "osca"
+
+# 합의한 전화번호 입력 로그인은 Supabase Auth JWT 없이 전용 API에서 처리합니다.
+[functions.osca-api]
+verify_jwt = false
+
+# 관리자 비밀번호와 DB 만료 세션을 함수 안에서 직접 확인합니다.
+[functions.osca-admin]
+verify_jwt = false

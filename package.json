@@ -5,7 +5,7 @@
   "description": "오스카 빌리지와 O·S·C·A 집을 탐색하는 웹 앱",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check app.js && node --check vote-store.js && node --check server.mjs",
-    "test": "node --test vote-store.test.cjs"
+    "check": "node --check app.js && node --check vote-store.js && node --check config.js && node --check server.mjs && node --check admin.js && node --check admin-proxy.mjs && node --check supabase/functions/osca-api/handler.mjs && node --check supabase/functions/osca-admin/handler.mjs",
+    "test": "node --test vote-store.test.cjs api.test.mjs admin.test.mjs"
   }
 }

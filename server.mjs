@@ -1,19 +1,29 @@
 // 공개 화면 파일만 제공하는 오스카 빌리지 로컬 미리보기 서버입니다.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { createAdminProxy } from "./admin-proxy.mjs";
+const adminProxy = createAdminProxy({ endpoint: "https://cisfvzotckftsyqodxud.supabase.co/functions/v1/osca-admin" });
 
 const publicFiles = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/config.js", ["config.js", "text/javascript; charset=utf-8"]],
   ["/vote-store.js", ["vote-store.js", "text/javascript; charset=utf-8"]],
+  ["/wic_admin", ["admin.html", "text/html; charset=utf-8"]],
+  ["/wic_admin/", ["admin.html", "text/html; charset=utf-8"]],
+  ["/admin.js", ["admin.js", "text/javascript; charset=utf-8"]],
+  ["/admin.css", ["admin.css", "text/css; charset=utf-8"]],
   ...["OSCA_home", "O_house", "S_house", "C_house", "A_house",
     "O_desc_board_vote", "S_desc_board_vote", "C_desc_board_vote", "A_desc_board_vote"].map((name) =>
     [`/asset/${name}.png`, [`asset/${name}.png`, "image/png"]]),
 ]);
 
 const server = createServer(async (request, response) => {
+  if (new URL(request.url, "http://localhost").pathname.startsWith("/wic_admin/api/")) {
+    await adminProxy(request, response); return;
+  }
   const file = publicFiles.get(new URL(request.url, "http://localhost").pathname);
   if (!file || !["GET", "HEAD"].includes(request.method)) {
     response.writeHead(404).end("Not found");
@@ -21,7 +31,9 @@ const server = createServer(async (request, response) => {
   }
   try {
     const data = await readFile(new URL(file[0], import.meta.url));
-    response.writeHead(200, { "Content-Type": file[1], "X-Content-Type-Options": "nosniff" });
+    response.writeHead(200, { "Content-Type": file[1], "X-Content-Type-Options": "nosniff",
+      ...(file[0].startsWith("admin.") ? { "Cache-Control": "no-store", "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" } : {}) });
     response.end(request.method === "HEAD" ? undefined : data);
   } catch (error) {
     console.error("화면 파일을 읽지 못했습니다.", error.message);

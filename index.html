@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#f6f1e6">
     <title>오스카 빌리지</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="config.js" defer></script>
     <script src="vote-store.js" defer></script>
     <script src="app.js" defer></script>
   </head>
@@ -16,6 +17,12 @@
       <div class="scene" id="scene">
         <img class="scene-image" id="scene-image" src="asset/OSCA_home.png"
           width="2613" height="1471" alt="오스카 빌리지. 왼쪽부터 O, S, C, A 집이 자리하고 있습니다." fetchpriority="high">
+        <div class="user-status" id="user-status" role="status">
+          <button id="user-greeting" type="button" aria-haspopup="dialog" aria-controls="my-votes-dialog" hidden><strong id="user-nickname"></strong><span class="greeting-text"> 님 안녕하세요</span></button>
+          <span id="login-message" hidden></span>
+          <button id="login-open" type="button" aria-haspopup="dialog">로그인 하세요</button>
+          <button id="login-retry" type="button" hidden>다시 확인하기</button>
+        </div>
         <nav class="entrances" id="entrances" aria-label="집 입구">
           <a class="entrance o-entrance" href="#house/O" aria-label="O 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
           <a class="entrance s-entrance" href="#house/S" aria-label="S 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
@@ -35,10 +42,6 @@
         <a href="#house/C">C 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
         <a href="#house/A">A 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
       </nav>
-      <div class="village-status" id="village-status">
-        <p id="village-vote-summary" role="status">0 / 4 하우스 투표 완료</p>
-        <button class="local-data-open" id="local-data-open" type="button" aria-haspopup="dialog">테스트 데이터 확인 및 초기화</button>
-      </div>
       <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
     </main>
     <dialog class="candidate-dialog" id="candidate-dialog" aria-labelledby="board-title">
@@ -55,27 +58,32 @@
         <button class="board-close" id="board-close" type="button" aria-label="후보 보드 닫기">×</button>
       </div>
     </dialog>
-    <dialog class="vote-dialog local-data-dialog" id="local-data-dialog" aria-labelledby="local-data-title">
-      <p class="vote-eyebrow">임시 테스트 도구</p>
-      <h2 id="local-data-title">로컬 투표 데이터</h2>
-      <button class="local-data-close" id="local-data-close" type="button" aria-label="로컬 데이터 닫기" autofocus>×</button>
-      <p class="vote-detail">현재 브라우저에 저장된 투표 기록입니다.</p>
-      <table class="local-data-table">
-        <caption class="sr-only">하우스별 투표 후보와 저장 시각</caption>
+    <dialog class="vote-dialog identity-dialog" id="identity-dialog" aria-labelledby="identity-title" aria-describedby="identity-description">
+      <div class="identity-crest" aria-hidden="true">O · S · C · A</div>
+      <p class="vote-eyebrow">오스카 빌리지에 오신 것을 환영해요</p>
+      <h2 id="identity-title">당신의 한 표를 남겨주세요</h2>
+      <p class="vote-detail" id="identity-description">전화번호로 로그인하고 투표를 이어갈 수 있어요.</p>
+      <button class="identity-close" id="identity-close" type="button" aria-label="로그인 창 닫기">×</button>
+      <form id="identity-form" novalidate>
+        <label for="identity-phone">휴대전화 번호 <span class="field-required">필수</span></label>
+        <input id="identity-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="010-1234-5678" maxlength="24" required aria-describedby="phone-help">
+        <p class="field-help" id="phone-help">010으로 시작하는 번호를 입력해 주세요.</p>
+        <label for="identity-nickname">닉네임 <span class="field-optional">선택</span></label>
+        <input id="identity-nickname" name="nickname" type="text" autocomplete="nickname" placeholder="한글·영문·숫자 최대 6자" aria-describedby="nickname-help">
+        <p class="field-help" id="nickname-help">입력하지 않으면 전화번호 뒤 4자리로 불러드려요.</p>
+        <p class="identity-error" id="identity-error" role="alert" hidden></p>
+        <div class="vote-actions"><button class="vote-yes" id="identity-submit" type="submit">로그인하기</button></div>
+      </form>
+      <p class="identity-note">한 하우스에 한 표씩, 소중한 선택을 남겨주세요.</p>
+    </dialog>
+    <dialog class="vote-dialog my-votes-dialog" id="my-votes-dialog" aria-labelledby="my-votes-title">
+      <h2 id="my-votes-title">나의 투표 현황</h2>
+      <button class="identity-close" id="my-votes-close" type="button" aria-label="투표 현황 닫기" autofocus>×</button>
+      <table class="my-votes-table" aria-labelledby="my-votes-title">
+        <colgroup><col class="house-column"><col class="candidate-column"><col></colgroup>
         <thead><tr><th scope="col">하우스</th><th scope="col">투표 후보</th><th scope="col">투표 시각</th></tr></thead>
-        <tbody id="local-data-rows"></tbody>
+        <tbody id="my-votes-rows"></tbody>
       </table>
-      <details class="local-data-raw"><summary>저장 원문 보기</summary><pre id="local-data-raw"></pre></details>
-      <p class="local-data-note">초기화는 이 앱의 투표 기록만 삭제합니다. 다른 로컬 데이터는 유지됩니다.</p>
-      <p class="local-data-result" id="local-data-result" role="status"></p>
-      <button class="local-data-reset" id="local-data-reset" type="button">투표 데이터 초기화</button>
-      <div class="reset-confirm" id="reset-confirm" hidden>
-        <p>모든 하우스의 투표 기록을 초기화할까요?</p>
-        <div class="vote-actions">
-          <button class="local-data-reset" id="local-data-reset-yes" type="button">초기화</button>
-          <button class="vote-no" id="local-data-reset-no" type="button">취소</button>
-        </div>
-      </div>
     </dialog>
     <dialog class="vote-dialog" id="vote-dialog" aria-labelledby="vote-message" aria-describedby="vote-detail">
       <p class="vote-eyebrow" id="vote-heading">투표 확인</p>

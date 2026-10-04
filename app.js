@@ -1,6 +1,7 @@
-// 빌리지·후보 소개 보드·투표 현황을 표시하고 투표 및 임시 데이터 도구를 관리합니다.
+// 빌리지·후보 소개·전화번호 로그인과 Supabase 투표 흐름을 표시합니다.
 const rooms = {
   O: {
+    name: "Outsight D.T", direction: "로",
     description: "서재", image: "asset/O_house.png",
     voteBounds: [38.7, 86.4, 22.8, 10.3],
     panels: [
@@ -43,6 +44,7 @@ const rooms = {
     ],
   },
   S: {
+    name: "서비스생산시스템", direction: "으로",
     description: "음악 공간", image: "asset/S_house.png",
     voteBounds: [38.4, 84, 23, 11],
     panels: [
@@ -95,6 +97,7 @@ const rooms = {
     ],
   },
   C: {
+    name: "컨설팅&엑셀러레이팅", direction: "으로",
     description: "카페", image: "asset/C_house.png",
     voteBounds: [38.1, 83.6, 23.2, 9.9],
     panels: [
@@ -138,6 +141,7 @@ const rooms = {
     ],
   },
   A: {
+    name: "애자일", direction: "로",
     description: "캠핑 공간", image: "asset/A_house.png",
     voteBounds: [37.4, 85.7, 25, 10.9],
     panels: [
@@ -183,6 +187,7 @@ const rooms = {
 
 const scene = document.getElementById("scene");
 const sceneImage = document.getElementById("scene-image");
+const villageApp = document.querySelector(".village-app");
 const entrances = document.getElementById("entrances");
 const mobileEntrances = document.getElementById("mobile-entrances");
 const backLink = document.getElementById("back-link");
@@ -208,22 +213,46 @@ const voteYes = document.getElementById("vote-yes");
 const voteNo = document.getElementById("vote-no");
 const roomVotedSign = document.getElementById("room-voted-sign");
 const roomVotedDetail = document.getElementById("room-voted-detail");
-const villageStatus = document.getElementById("village-status");
-const villageVoteSummary = document.getElementById("village-vote-summary");
-const localDataOpen = document.getElementById("local-data-open");
-const localDataDialog = document.getElementById("local-data-dialog");
-const localDataRows = document.getElementById("local-data-rows");
-const localDataRaw = document.getElementById("local-data-raw");
-const localDataResult = document.getElementById("local-data-result");
-const localDataReset = document.getElementById("local-data-reset");
-const resetConfirm = document.getElementById("reset-confirm");
-const resetNo = document.getElementById("local-data-reset-no");
+const userStatus = document.getElementById("user-status");
+const userGreeting = document.getElementById("user-greeting");
+const userNickname = document.getElementById("user-nickname");
+const loginMessage = document.getElementById("login-message");
+const myVotesDialog = document.getElementById("my-votes-dialog");
+const myVotesRows = document.getElementById("my-votes-rows");
+const myVotesClose = document.getElementById("my-votes-close");
+const voteTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric",
+  hour: "numeric", minute: "2-digit", second: "2-digit",
+});
+const loginOpen = document.getElementById("login-open");
+const loginRetry = document.getElementById("login-retry");
+const identityDialog = document.getElementById("identity-dialog");
+const identityForm = document.getElementById("identity-form");
+const identityPhone = document.getElementById("identity-phone");
+const identityNickname = document.getElementById("identity-nickname");
+const identityError = document.getElementById("identity-error");
+const identitySubmit = document.getElementById("identity-submit");
+const identityClose = document.getElementById("identity-close");
+const client = voteStore.createClient({
+  endpoint: window.OSCA_CONFIG?.apiUrl,
+  storage: { getItem: (key) => window.localStorage.getItem(key),
+    setItem: (key, value) => window.localStorage.setItem(key, value),
+    removeItem: (key) => window.localStorage.removeItem(key) },
+  onChange: () => refreshVoteStatus(),
+});
+let draftIdentity;
+let identityMode;
+let identityBusy = false;
+let voteBusy = false;
+let operationRequest = 0;
 let voteStep;
 let pendingVote;
 let nextHouse;
 let previousHouse;
 let currentHouse;
 let boardRequest = 0;
+let screenRequest = 0;
+let screenAnimation;
 
 // 소개가 준비된 하우스만 후보 순서에 맞춰 연결합니다.
 for (const room of Object.values(rooms)) {
@@ -417,25 +446,63 @@ candidateDialog.addEventListener("click", (event) => {
 });
 
 function refreshVoteStatus() {
-  try {
-    const votes = voteStore.read(window.localStorage);
-    renderCompletionSigns(votes);
-    const vote = votes[currentHouse];
-    boardVote.disabled = Boolean(vote);
-    boardVoteLabel.textContent = vote ? "투표 완료" : "";
-    boardVote.setAttribute("aria-label", vote ? "투표 완료" : "투표하기");
-    boardVoteStatus.textContent = vote ? `${currentHouse} 하우스 · 후보 ${vote.candidate}에게 투표했습니다.` : "";
-    boardVoteStatus.hidden = !vote;
-  } catch {
-    renderCompletionSigns({});
-    villageVoteSummary.textContent = "로컬 투표 기록을 확인할 수 없습니다.";
-    boardVote.disabled = true;
-    boardVoteLabel.textContent = "저장 확인 필요";
-    boardVote.setAttribute("aria-label", "저장 확인 필요");
-    boardVoteStatus.textContent = "저장된 투표를 읽지 못했습니다. 브라우저의 저장 설정을 확인한 뒤 새로고침해 주세요.";
-    boardVoteStatus.hidden = false;
+  const state = client.state;
+  const checking = state.status === "checking";
+  const failed = state.status === "error";
+  const votes = state.status === "ready" ? state.votes : {};
+  renderCompletionSigns(votes);
+  loginOpen.hidden = checking || failed || Boolean(state.user);
+  loginRetry.hidden = !failed;
+  userGreeting.hidden = state.status !== "ready" || !state.user;
+  userNickname.textContent = state.user ? state.user.nickname || state.user.phone.slice(-4) : "";
+  userGreeting.setAttribute("aria-label", `${userNickname.textContent} 님 안녕하세요 · 나의 투표 현황 보기`);
+  loginMessage.hidden = !checking && !failed;
+  loginMessage.textContent = checking ? "로그인 확인 중…" : failed ? "연결을 확인해 주세요" : "";
+  loginRetry.title = state.error;
+  const vote = votes[currentHouse];
+  boardVote.disabled = voteBusy || checking || Boolean(vote);
+  const label = checking ? "확인 중" : failed ? "다시 확인" : vote ? "투표 완료" : "";
+  boardVoteLabel.textContent = label;
+  boardVote.classList.toggle("has-label", Boolean(label));
+  boardVote.setAttribute("aria-label", label || "투표하기");
+  boardVoteStatus.textContent = failed ? state.error : vote ? `${rooms[currentHouse].name} · 후보 ${vote.candidate}에게 투표했습니다.` : "";
+  boardVoteStatus.hidden = !failed && !vote;
+  if (state.storageWarning) announcement.textContent = state.storageWarning;
+  if (myVotesDialog.open) {
+    if (state.status === "guest") myVotesDialog.close();
+    else renderMyVotes();
   }
 }
+
+function renderMyVotes() {
+  const state = client.state;
+  myVotesRows.replaceChildren(...Object.keys(rooms).map((house) => {
+    const row = document.createElement("tr");
+    const heading = document.createElement("th");
+    heading.scope = "row";
+    heading.textContent = house;
+    const candidate = document.createElement("td");
+    const time = document.createElement("td");
+    const vote = state.status === "ready" ? state.votes[house] : null;
+    candidate.textContent = state.status === "checking" ? "확인 중…" : state.status === "error" ? "조회 실패"
+      : vote ? `후보 ${vote.candidate}` : "미투표";
+    time.textContent = vote ? voteTimeFormatter.format(new Date(vote.votedAt)) : "—";
+    row.append(heading, candidate, time);
+    return row;
+  }));
+  myVotesRows.setAttribute("aria-busy", String(state.status === "checking"));
+}
+
+userGreeting.addEventListener("click", () => {
+  if (client.state.status !== "ready") return;
+  renderMyVotes();
+  myVotesDialog.showModal();
+  client.restore().catch(() => {});
+});
+myVotesClose.addEventListener("click", () => myVotesDialog.close());
+myVotesDialog.addEventListener("click", (event) => {
+  if (event.target === myVotesDialog) myVotesDialog.close();
+});
 
 function renderCompletionSigns(votes) {
   for (const house of Object.keys(rooms)) {
@@ -455,70 +522,96 @@ function renderCompletionSigns(votes) {
     roomVotedSign.style.left = `${(leftTop[0] + rightTop[0]) / 2}%`;
     roomVotedSign.style.top = `${Math.min(leftTop[1], rightTop[1])}%`;
   }
-  villageVoteSummary.textContent = `${Object.keys(votes).length} / 4 하우스 투표 완료`;
 }
 
-function renderLocalData() {
-  localDataRows.replaceChildren();
-  localDataRaw.textContent = "저장 원문을 읽을 수 없습니다.";
-  try {
-    const storage = window.localStorage;
-    const raw = storage.getItem(voteStore.key);
-    localDataRaw.textContent = raw === null ? "저장된 투표 데이터가 없습니다." : raw;
-    const votes = voteStore.read(storage);
-    for (const house of Object.keys(rooms)) {
-      const vote = votes[house];
-      const date = vote ? new Date(vote.votedAt) : undefined;
-      const row = document.createElement("tr");
-      for (const value of [house, vote ? `후보 ${vote.candidate}` : "미투표",
-        date && Number.isFinite(date.getTime()) ? date.toLocaleString("ko-KR") : "—"]) {
-        const cell = document.createElement("td");
-        cell.textContent = value;
-        row.append(cell);
-      }
-      localDataRows.append(row);
-    }
-  } catch {
-    localDataResult.textContent = "투표 기록을 읽지 못했습니다. 저장 원문을 확인하거나 초기화해 주세요.";
-  }
+function openIdentity(mode) {
+  identityMode = mode;
+  draftIdentity = undefined;
+  identityForm.reset();
+  identityError.hidden = true;
+  identityPhone.removeAttribute("aria-invalid");
+  identityNickname.removeAttribute("aria-invalid");
+  document.getElementById("identity-title").textContent = mode === "vote" ? "당신의 한 표를 남겨주세요" : "반가워요, 함께 시작해요";
+  document.getElementById("identity-description").textContent = mode === "vote"
+    ? "먼저 전화번호를 입력하고 선택한 후보의 투표를 이어가세요."
+    : "전화번호로 로그인하고, 네 하우스에서 소중한 한 표를 남겨주세요.";
+  identitySubmit.textContent = mode === "vote" ? "투표 이어가기" : "로그인하기";
+  identityDialog.showModal();
+  identityPhone.focus();
 }
 
-localDataOpen.addEventListener("click", () => {
-  localDataResult.textContent = "";
-  resetConfirm.hidden = true;
-  localDataReset.hidden = false;
-  renderLocalData();
-  localDataDialog.showModal();
-});
-document.getElementById("local-data-close").addEventListener("click", () => localDataDialog.close());
-localDataDialog.addEventListener("click", (event) => {
-  if (event.target === localDataDialog) localDataDialog.close();
-});
-localDataReset.addEventListener("click", () => {
-  resetConfirm.hidden = false;
-  localDataReset.hidden = true;
-  resetNo.focus();
-});
-resetNo.addEventListener("click", () => {
-  resetConfirm.hidden = true;
-  localDataReset.hidden = false;
-  localDataReset.focus();
-});
-document.getElementById("local-data-reset-yes").addEventListener("click", () => {
+function cancelIdentity() {
+  if (identityBusy) return;
+  operationRequest += 1;
+  identityDialog.close();
+  draftIdentity = undefined;
+  pendingVote = undefined;
+}
+identityClose.addEventListener("click", cancelIdentity);
+identityDialog.addEventListener("cancel", (event) => { event.preventDefault(); cancelIdentity(); });
+identityDialog.addEventListener("click", (event) => { if (event.target === identityDialog) cancelIdentity(); });
+loginOpen.addEventListener("click", () => { pendingVote = undefined; openIdentity("main"); });
+loginRetry.addEventListener("click", () => client.restore().catch(() => {}));
+
+function showCurrentVote() {
+  const vote = client.state.votes[pendingVote.house];
+  showVotePrompt("duplicate", "투표 완료", "이미 투표 결과가 있습니다",
+    `${rooms[pendingVote.house].name} · 후보 ${vote.candidate}에게 한 최초 투표를 유지합니다.`);
+}
+function confirmPendingVote() {
+  showVotePrompt("confirm", "투표 확인",
+    `${rooms[pendingVote.house].name}의 후보 ${pendingVote.candidate}에게 투표를 하시겠습니까?`,
+    "한 번만 투표할 수 있으며, 저장 후에는 변경할 수 없습니다.");
+}
+identityForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (identityBusy) return;
+  let identity;
   try {
-    voteStore.reset(window.localStorage);
-  } catch {
-    localDataResult.textContent = "초기화하지 못했습니다. 브라우저의 저장 설정을 확인해 주세요.";
+    identity = voteStore.validateIdentity({ phone: identityPhone.value, nickname: identityNickname.value });
+    identityPhone.removeAttribute("aria-invalid");
+    identityNickname.removeAttribute("aria-invalid");
+  } catch (error) {
+    identityError.textContent = error.message;
+    identityError.hidden = false;
+    const field = error.message.includes("010") ? identityPhone : identityNickname;
+    field.setAttribute("aria-invalid", "true");
+    field.focus();
     return;
   }
-  resetConfirm.hidden = true;
-  localDataReset.hidden = false;
-  refreshVoteStatus();
-  renderLocalData();
-  localDataResult.textContent = "투표 기록을 초기화했습니다. 다시 투표할 수 있습니다.";
-  localDataReset.focus();
+  const request = ++operationRequest;
+  const label = identitySubmit.textContent;
+  identityBusy = true;
+  identityError.hidden = true;
+  identitySubmit.textContent = "확인하고 있어요…";
+  identitySubmit.disabled = identityClose.disabled = true;
+  identityPhone.disabled = identityNickname.disabled = true;
+  try {
+    if (identityMode === "main") {
+      await client.login(identity);
+      if (request !== operationRequest) return;
+      identityDialog.close();
+      announcement.textContent = client.state.storageWarning || "로그인되었습니다.";
+    } else {
+      const data = await client.lookup(identity);
+      if (request !== operationRequest) return;
+      if (data.user) client.adopt(data);
+      else draftIdentity = identity;
+      identityDialog.close();
+      if (data.votes[pendingVote.house]) showCurrentVote();
+      else confirmPendingVote();
+    }
+  } catch (error) {
+    if (request !== operationRequest) return;
+    identityError.textContent = error.message;
+    identityError.hidden = false;
+  } finally {
+    identityBusy = false;
+    identitySubmit.disabled = identityClose.disabled = false;
+    identityPhone.disabled = identityNickname.disabled = false;
+    identitySubmit.textContent = label;
+  }
 });
-
 function showVotePrompt(step, heading, message, detail) {
   voteStep = step;
   voteHeading.textContent = heading;
@@ -526,15 +619,24 @@ function showVotePrompt(step, heading, message, detail) {
   voteDetail.textContent = detail;
   voteNo.hidden = step === "complete" || step === "error" || step === "duplicate";
   voteYes.textContent = step === "complete" ? "마을로 돌아가기" : voteNo.hidden ? "확인" : "예";
+  if (step === "save-error") voteYes.textContent = "다시 시도";
+  voteNo.textContent = step === "save-error" ? "닫기" : "아니오";
   if (!voteDialog.open) voteDialog.showModal();
   voteYes.focus({ preventScroll: true });
 }
 
-boardVote.addEventListener("click", () => {
+boardVote.addEventListener("click", async () => {
+  if (identityBusy || voteBusy || client.state.status === "checking") return;
   pendingVote = { house: currentHouse, candidate: Number(boardContent.dataset.candidate) };
-  showVotePrompt("confirm", "투표 확인",
-    `${pendingVote.house} 하우스의 후보 ${pendingVote.candidate}에게 투표를 하시겠습니까?`,
-    "하우스별로 한 번만 투표할 수 있으며, 저장 후에는 변경할 수 없습니다.");
+  draftIdentity = undefined;
+  const request = ++operationRequest;
+  if (client.state.status === "error") {
+    try { await client.restore(); } catch { return; }
+    if (request !== operationRequest) return;
+  }
+  if (!client.state.user) openIdentity("vote");
+  else if (client.state.votes[pendingVote.house]) showCurrentVote();
+  else confirmPendingVote();
 });
 
 function goTo(house) {
@@ -543,26 +645,43 @@ function goTo(house) {
   location.hash = house ? `#house/${house}` : "#village";
 }
 
-voteYes.addEventListener("click", () => {
-  if (voteStep === "confirm") {
+voteYes.addEventListener("click", async () => {
+  if (voteBusy) return;
+  if (voteStep === "confirm" || voteStep === "save-error") {
+    const selection = { ...pendingVote };
+    const request = ++operationRequest;
+    const identity = draftIdentity || client.state.user;
+    voteBusy = true;
+    voteYes.disabled = voteNo.disabled = true;
+    voteYes.textContent = "저장하고 있어요…";
+    refreshVoteStatus();
     let result;
     try {
-      result = voteStore.save(window.localStorage, pendingVote.house, pendingVote.candidate);
+      result = await client.vote(identity, selection.house, selection.candidate);
     } catch {
-      showVotePrompt("error", "저장 실패", "투표를 저장하지 못했습니다.",
-        "투표는 완료되지 않았습니다. 브라우저의 저장 설정을 확인한 뒤 다시 시도해 주세요.");
+      if (request === operationRequest) showVotePrompt("save-error", "저장 안내", "투표를 저장하지 못했어요.",
+        "이용에 불편을 드려 죄송해요. 잠시 후 다시 시도해 주세요. 저장이 확인되어야 투표가 완료됩니다.");
+      return;
+    } finally {
+      voteBusy = false;
+      voteYes.disabled = voteNo.disabled = false;
+      refreshVoteStatus();
+    }
+    if (request !== operationRequest) return;
+    draftIdentity = undefined;
+    if (result.status === "missing") {
+      showVotePrompt("error", "로그인 확인", "사용자 정보를 다시 확인해 주세요.",
+        "저장된 사용자 정보가 없어 다시 로그인해야 합니다. 투표는 저장되지 않았습니다.");
       return;
     }
-    refreshVoteStatus();
-    if (!result.saved) {
-      showVotePrompt("duplicate", "투표 완료", "이미 투표한 하우스입니다.",
-        `후보 ${result.votes[pendingVote.house].candidate}에게 한 최초 투표를 유지합니다.`);
+    if (result.status === "duplicate") {
+      showCurrentVote();
       return;
     }
     nextHouse = voteStore.nextHouse(result.votes);
-    const detail = `${pendingVote.house} 하우스의 후보 ${pendingVote.candidate}에게 투표가 저장되었습니다. (${Object.keys(result.votes).length}/4 완료)`;
+    const detail = `${rooms[selection.house].name}의 후보 ${selection.candidate}에게 투표가 저장되었습니다.`;
     if (nextHouse) {
-      showVotePrompt("next", "투표 완료", `${nextHouse} 하우스에 투표하러 이동하시겠습니까?`, detail);
+      showVotePrompt("next", "투표 완료", `아직 투표하지 않은 ${rooms[nextHouse].name}${rooms[nextHouse].direction} 이동해 투표하시겠습니까?`, detail);
     } else {
       showVotePrompt("complete", "투표 완료", "모든 하우스에 투표를 마쳤습니다.", detail);
     }
@@ -572,12 +691,17 @@ voteYes.addEventListener("click", () => {
     goTo();
   } else {
     voteDialog.close();
+    pendingVote = draftIdentity = undefined;
   }
 });
 
 function declineVotePrompt() {
+  if (voteBusy) return;
   if (voteStep === "next" || voteStep === "complete") goTo();
-  else voteDialog.close();
+  else {
+    voteDialog.close();
+    pendingVote = draftIdentity = undefined;
+  }
 }
 voteNo.addEventListener("click", declineVotePrompt);
 voteDialog.addEventListener("cancel", (event) => {
@@ -586,23 +710,28 @@ voteDialog.addEventListener("cancel", (event) => {
 });
 window.addEventListener("storage", (event) => {
   if (event.key === voteStore.key || event.key === null) {
-    refreshVoteStatus();
-    if (localDataDialog.open) {
-      localDataResult.textContent = "";
-      renderLocalData();
-    }
+    if (!voteBusy && !identityBusy) client.restore().catch(() => {});
   }
 });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !voteBusy && !identityBusy) client.restore().catch(() => {});
+});
 
-function renderScreen() {
+function closeScreenDialogs() {
+  for (const dialog of [voteDialog, identityDialog, myVotesDialog, candidateDialog]) {
+    if (dialog.open) dialog.close();
+  }
+}
+
+function renderScreen({ focus = true } = {}) {
   const house = location.hash.match(/^#house\/([OSCA])$/)?.[1];
   const room = rooms[house];
   const title = room ? `${house} 집 · 오스카 빌리지` : "오스카 빌리지";
 
-  if (voteDialog.open) voteDialog.close();
-  if (localDataDialog.open) localDataDialog.close();
-  if (candidateDialog.open) candidateDialog.close();
+  closeScreenDialogs();
   pendingVote = undefined;
+  draftIdentity = undefined;
+  operationRequest += 1;
   boardRequest += 1;
   currentHouse = house;
   renderCandidates(room);
@@ -618,20 +747,66 @@ function renderScreen() {
   entrances.hidden = Boolean(room);
   mobileEntrances.hidden = Boolean(room);
   backLink.hidden = !room;
-  villageStatus.hidden = Boolean(room);
+  userStatus.hidden = Boolean(room);
   scene.classList.toggle("is-village", !room);
   refreshVoteStatus();
   screenTitle.textContent = title;
   document.title = title;
   announcement.textContent = room ? `${house} 집에 들어왔습니다.` : "오스카 빌리지입니다.";
 
-  if (room) {
-    backLink.focus({ preventScroll: true });
-  } else if (previousHouse) {
-    entrances.querySelector(`[href="#house/${previousHouse}"]`).focus({ preventScroll: true });
-  }
+  const focusTarget = room ? backLink : previousHouse
+    ? entrances.querySelector(`[href="#house/${previousHouse}"]`) : null;
+  if (focus) focusTarget?.focus({ preventScroll: true });
   previousHouse = house;
+  if (client.state.status === "ready") client.restore().catch(() => {});
+  return focusTarget;
 }
 
-window.addEventListener("hashchange", renderScreen);
+// 다음 이미지를 준비한 뒤 화면을 전환하고 마지막 이동의 포커스만 복원합니다.
+async function transitionScreen() {
+  const request = ++screenRequest;
+  const opacity = getComputedStyle(villageApp).opacity;
+  screenAnimation?.cancel();
+  villageApp.style.opacity = opacity;
+  closeScreenDialogs();
+  operationRequest += 1;
+  boardRequest += 1;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    villageApp.style.opacity = "";
+    villageApp.inert = false;
+    renderScreen();
+    return;
+  }
+  villageApp.inert = true;
+  let focusTarget;
+  try {
+    const house = location.hash.match(/^#house\/([OSCA])$/)?.[1];
+    const image = new Image();
+    image.src = rooms[house]?.image || "asset/OSCA_home.png";
+    await image.decode().catch(() => {});
+    if (request !== screenRequest) return;
+    screenAnimation = villageApp.animate([{ opacity }, { opacity: 0 }], {
+      duration: 180, easing: "ease-in", fill: "forwards",
+    });
+    await screenAnimation.finished.catch(() => {});
+    if (request !== screenRequest) return;
+    villageApp.style.opacity = "0";
+    screenAnimation.cancel();
+    focusTarget = renderScreen({ focus: false });
+    screenAnimation = villageApp.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 300, easing: "ease-out", fill: "forwards",
+    });
+    await screenAnimation.finished.catch(() => {});
+  } finally {
+    if (request === screenRequest) {
+      screenAnimation?.cancel();
+      villageApp.style.opacity = "";
+      villageApp.inert = false;
+      focusTarget?.focus({ preventScroll: true });
+    }
+  }
+}
+
+window.addEventListener("hashchange", transitionScreen);
 renderScreen();
+client.restore().catch(() => {});

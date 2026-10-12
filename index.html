@@ -5,13 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f6f1e6">
-    <title>오스카 빌리지</title>
+    <title>Innovation Award 2026</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/asset/favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="/asset/favicon-192.png?v=2">
     <link rel="stylesheet" href="styles.css">
+    <script src="display-guard.js" defer></script>
     <script src="config.js" defer></script>
     <script src="vote-store.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
+    <div id="service-content">
     <main class="village-app">
       <h1 class="sr-only" id="screen-title">오스카 빌리지</h1>
       <div class="scene" id="scene">
@@ -103,5 +107,14 @@
       </div>
     </dialog>
     <footer class="site-footer">© 2026 Innovation Award O.S.C.A (by. Work Innovation CoE). All rights reserved.</footer>
+    </div>
+    <dialog class="device-notice" id="device-notice" aria-labelledby="device-notice-title" aria-describedby="device-notice-description" tabindex="-1">
+      <div class="device-notice-card">
+        <p class="device-notice-eyebrow">Innovation Award 2026</p>
+        <h2 id="device-notice-title">더 넓은 화면에서 만나요</h2>
+        <p id="device-notice-description">노트북 또는 PC에서 접속 후 이용해 주세요.</p>
+        <p class="device-notice-detail">태블릿은 가로 화면에서 이용할 수 있습니다.</p>
+      </div>
+    </dialog>
   </body>
 </html>

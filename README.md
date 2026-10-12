@@ -16,7 +16,9 @@ npm start
 
 - 메인 이미지에서 각 집의 현판과 문을 함께 포함하는 입구 영역을 클릭하면 해당 집으로 들어갑니다.
 - 집 내부의 `마을로 돌아가기` 버튼을 누르면 메인 화면으로 돌아갑니다.
-- 작은 화면에서는 이미지 아래의 집 선택 버튼도 사용할 수 있습니다.
+- 가로 1,024 CSS 픽셀 이상인 가로 화면에서 이용할 수 있습니다. PC·노트북과 태블릿 가로 화면을 기준으로 합니다.
+- 작은 화면 또는 세로 화면에는 배경을 흐리게 처리한 이용 안내를 표시하고 클릭·키보드 조작을 차단합니다. 창 크기나 태블릿 방향을 바꾸면 자동으로 적용되며, 지원 화면으로 돌아오면 다시 이용할 수 있습니다.
+- 브라우저 탭 제목은 마을·하우스·관리자 모두 `Innovation Award 2026`이며, 첨부된 체크 아이콘의 보라색을 OSCA 마젠타 핑크(`#e5007d`)로 변경한 파비콘을 사용합니다. 원을 크게 키우고 바깥 배경을 투명하게 처리했으며, 32px·192px PNG를 제공합니다. 파비콘 URL의 버전 값으로 기존 아이콘 캐시를 갱신합니다.
 - `Tab`으로 입구를 선택하고 `Enter`로 이동할 수 있습니다.
 - 브라우저 뒤로 가기·앞으로 가기를 지원합니다.
 - 마을과 하우스를 오갈 때 다음 배경 이미지를 준비한 뒤 180ms 페이드 아웃·300ms 페이드 인으로 전환합니다. 전환 중에는 클릭을 차단하며, 동작 줄이기 설정에서는 즉시 이동합니다.
@@ -119,7 +121,7 @@ order by u.created_at desc, v.house;
 
 기존 정적 배포는 `/admin.html` 파일만 제공하며 로컬 `server.mjs`의 `/wic_admin` 경로와 관리자 API를 실행하지 않아 404가 발생합니다. HTML 경로만 연결해서는 로그인까지 동작하지 않습니다.
 
-`vercel.json`은 `/wic_admin`을 관리자 HTML로, `/wic_admin/api/:action`을 `api/wic_admin/[action].mjs` 서버 함수로 연결합니다. `npm run build`는 공개 화면·이미지 17개만 `dist`로 복사합니다. 서버 소스·문서·SQL·테스트는 정적 배포에서 제외됩니다. 이미지는 CDN에서 제공하고, 관리자 요청만 Vercel Node 함수가 기존 Supabase API로 중계합니다. 관리자 비밀번호와 Supabase 비밀 키를 Vercel 환경 변수에 넣을 필요는 없습니다.
+`vercel.json`은 `/wic_admin`을 관리자 HTML로, `/wic_admin/api/:action`을 `api/wic_admin/[action].mjs` 서버 함수로 연결합니다. `npm run build`는 공개 화면·이미지·화면 제한 스크립트·파비콘 20개를 `dist`로 복사합니다. 서버 소스·문서·SQL·테스트는 정적 배포에서 제외됩니다. 이미지는 CDN에서 제공하고, 관리자 요청만 Vercel Node 함수가 기존 Supabase API로 중계합니다. 관리자 비밀번호와 Supabase 비밀 키를 Vercel 환경 변수에 넣을 필요는 없습니다.
 
 1. 수정 소스가 GitHub `Peter-Sung/osca`의 `master`에 반영된 뒤 [Vercel Dashboard](https://vercel.com/dashboard)에서 **osca-vote** 프로젝트를 엽니다.
 2. **Settings → Build and Deployment**에서 프로젝트의 **Root Directory**가 저장소 루트인지 확인합니다. `vercel.json`과 `package.json`이 있는 위치가 루트여야 합니다.

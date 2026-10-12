@@ -779,7 +779,7 @@ function renderScreen({ focus = true } = {}) {
   scene.classList.toggle("is-village", !room);
   refreshVoteStatus();
   screenTitle.textContent = title;
-  document.title = title;
+  document.title = "Innovation Award 2026";
   announcement.textContent = room ? `${house} 집에 들어왔습니다.` : "오스카 빌리지입니다.";
 
   const focusTarget = room ? backLink : previousHouse

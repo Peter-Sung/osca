@@ -2,9 +2,14 @@
 <!doctype html>
 <html lang="ko"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OSCA 관리자</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css">
+  <title>Innovation Award 2026</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/asset/favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/asset/favicon-192.png?v=2">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css">
+  <script src="/display-guard.js" defer></script>
   <script src="/admin.js" defer></script>
 </head><body class="admin-body">
+  <div id="service-content">
   <header class="admin-header"><a class="admin-brand" href="/">OSCA<span>관리자</span></a><a class="village-link" href="/">마을로 돌아가기 ↗</a></header>
   <main class="admin-main">
     <section class="admin-login" id="admin-login">
@@ -53,4 +58,13 @@
     <div class="vote-actions"><button id="admin-user-logout-cancel" type="button" autofocus>취소</button><button class="primary-button" id="admin-user-logout-confirm" type="button">사용자 로그아웃</button></div>
   </dialog>
   <footer class="admin-footer">Innovation Award O.S.C.A · Work Innovation CoE</footer>
+  </div>
+  <dialog class="device-notice" id="device-notice" aria-labelledby="device-notice-title" aria-describedby="device-notice-description" tabindex="-1">
+    <div class="device-notice-card">
+      <p class="device-notice-eyebrow">Innovation Award 2026</p>
+      <h2 id="device-notice-title">더 넓은 화면에서 만나요</h2>
+      <p id="device-notice-description">노트북 또는 PC에서 접속 후 이용해 주세요.</p>
+      <p class="device-notice-detail">태블릿은 가로 화면에서 이용할 수 있습니다.</p>
+    </div>
+  </dialog>
 </body></html>

@@ -1,0 +1,42 @@
+-- 임시 세션·가입·투표·설정 변경은 전부 롤백합니다.
+begin;
+set local role service_role;
+do $$
+declare r jsonb; v_id uuid; baseline integer;
+begin
+  assert not exists(select 1 from public.osca_users where phone='01000009601'),'test phone must be unused';
+  assert not exists(select 1 from osca_admin.sessions where token_hash in(repeat('7',64),repeat('8',64),repeat('9',64))),'test sessions must be unused';
+  insert into osca_admin.sessions(token_hash,expires_at) values(repeat('7',64),now()+interval '5 minutes'),(repeat('9',64),now()-interval '1 minute');
+  assert public.osca_admin_voting(repeat('8',64),true,'paused')->>'status'='unauthorized','anonymous setting blocked';
+  assert public.osca_admin_voting(repeat('9',64),true,'paused')->>'status'='unauthorized','expired setting blocked';
+  assert public.osca_admin_voting(repeat('7',64),true,'unknown')->>'status'='invalid','custom message blocked';
+  assert public.osca_admin_voting(repeat('7',64),true,null)->>'status'='invalid','partial update blocked';
+  r:=public.osca_admin_voting(repeat('7',64),false,'not-started');
+  assert r->>'status'='ok' and (r->'data'->>'enabled')::boolean=false,'Off saved';
+  assert public.osca_voting_status()->>'message'='아직 투표기간이 아닙니다.','first message';
+  select count(*) into baseline from public.osca_votes;
+  r:=public.osca_dispatch('vote','01000009601','스위치검증','O',1);
+  assert r->>'status'='closed','guest vote blocked';
+  assert not exists(select 1 from public.osca_users where phone='01000009601'),'closed vote creates no user';
+  r:=public.osca_dispatch('login','01000009601','스위치검증');
+  v_id:=(r->'user'->>'id')::uuid;
+  assert v_id is not null,'login still works while closed';
+  r:=public.osca_dispatch('vote','01000009601',null,'O',1,v_id,0);
+  assert r->>'status'='closed','registered vote blocked';
+  perform public.osca_admin_voting(repeat('7',64),true,'not-started');
+  r:=public.osca_dispatch('vote','01000009601',null,'O',1,v_id,0);
+  assert r->>'status'='saved','On allows vote';
+  perform public.osca_admin_voting(repeat('7',64),false,'paused');
+  assert public.osca_voting_status()->>'message'=E'운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요.','exactly two lines';
+  r:=public.osca_dispatch('vote','01000009601',null,'S',1,v_id,0);
+  assert r->>'status'='closed' and r->'voting'->>'messageKey'='paused','Off stops subsequent votes';
+  assert (select count(*) from public.osca_votes)=baseline+1,'closed votes never inserted';
+  assert public.osca_snapshot(v_id)->'votes'->'O' is not null,'existing vote retained';
+  assert public.osca_admin_voting(repeat('7',64))->'data'->>'messageKey'='paused','setting survives subsequent reads';
+  assert not has_table_privilege('anon','osca_admin.voting_settings','select'),'public table hidden';
+  assert not has_table_privilege('authenticated','osca_admin.voting_settings','update'),'public write blocked';
+  assert not has_function_privilege('anon','public.osca_admin_voting(text,boolean,text)','execute'),'admin RPC hidden';
+  assert not has_function_privilege('authenticated','public.osca_voting_status()','execute'),'status only through Edge API';
+end;
+$$;
+rollback;

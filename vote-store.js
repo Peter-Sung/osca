@@ -19,6 +19,12 @@ const voteStore = (() => {
     return Object.hasOwn(counts, house) && Number.isInteger(candidate) && candidate >= 1 && candidate <= counts[house];
   }
   const nextHouse = (votes) => order.find((house) => !votes[house]);
+  function checkedVotingStatus(data) {
+    if (!data || typeof data.enabled !== "boolean" || !["not-started", "paused"].includes(data.messageKey)
+      || !Number.isFinite(Date.parse(data.updatedAt))) throw new Error(retryMessage);
+    return { ...data, message: data.messageKey === "paused"
+      ? "운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요." : "아직 투표기간이 아닙니다." };
+  }
 
   function createClient({ endpoint, storage, fetchImpl = fetch, onChange = () => {} }) {
     let state = { user: null, votes: {}, status: "guest", error: "", storageWarning: "" };
@@ -59,7 +65,7 @@ const voteStore = (() => {
       }
       return data;
     }
-    async function request(action, identity, vote = {}) {
+    async function request(action, identity = {}, vote = {}) {
       if (!endpoint) throw new Error("연결을 준비하고 있습니다. 잠시 후 다시 시도해 주세요.");
       try {
         const response = await fetchImpl(endpoint, {
@@ -68,7 +74,14 @@ const voteStore = (() => {
           signal: AbortSignal.timeout(15000), cache: "no-store",
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || retryMessage);
+        if (!response.ok) {
+          const error = new Error(data.message || retryMessage);
+          if (response.status === 409 && data.status === "closed") {
+            error.code = "voting-closed"; error.voting = checkedVotingStatus(data.voting);
+          }
+          throw error;
+        }
+        if (action === "voting-status") return checkedVotingStatus(data);
         const result = checkedSnapshot(data);
         if (result.user && result.user.phone !== identity.phone) throw new Error(retryMessage);
         return result;
@@ -120,6 +133,7 @@ const voteStore = (() => {
       let data;
       try { data = await request("vote", normalized, { house, candidate, userId: identity.id ?? null, loginVersion: identity.loginVersion ?? 0 }); }
       catch (error) {
+        if (error.code === "voting-closed") throw error;
         const recovered = await request(identity.id ? "restore" : "lookup", normalized, { loginVersion: identity.loginVersion ?? 0 }).catch(() => null);
         if (recovered?.status === "logged-out") return adopt(recovered);
         if (!recovered?.user || !recovered.votes[house]) throw error;
@@ -127,7 +141,7 @@ const voteStore = (() => {
       }
       return adopt(data);
     }
-    return { get state() { return state; }, restore, lookup, login, vote, adopt };
+    return { get state() { return state; }, restore, lookup, login, vote, adopt, getVotingStatus: () => request("voting-status") };
   }
   return { key, legacyKey, validateIdentity, validVote, nextHouse, createClient };
 })();

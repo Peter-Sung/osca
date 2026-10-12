@@ -18,27 +18,29 @@ export function createHandler({ url, secretKey, fetchImpl = fetch }) {
       if (raw.length > 2048) throw new Error("body too large");
       body = JSON.parse(raw);
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("invalid body");
-      if (!['lookup', 'restore', 'login', 'vote'].includes(body.action)) throw new Error("invalid action");
-      if (body.loginVersion != null && (!Number.isInteger(body.loginVersion) || body.loginVersion < 0 || body.loginVersion > 2147483647)) throw new Error("invalid login version");
-      if (typeof body.phone !== "string") throw new Error("invalid phone");
-      body.phone = body.phone.replace(/[-\s]/g, "");
-      if (!/^010\d{8}$/.test(body.phone)) throw new Error("invalid phone");
-      if (body.nickname != null && typeof body.nickname !== "string") throw new Error("invalid nickname");
-      body.nickname = (body.nickname ?? "").trim().normalize("NFC") || null;
-      if (body.nickname && !/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9]{1,6}$/.test(body.nickname)) throw new Error("invalid nickname");
-      if (body.action === "vote" && (!['O', 'S', 'C', 'A'].includes(body.house) || !Number.isInteger(body.candidate)
-          || body.candidate < 1 || body.candidate > (body.house === "S" ? 4 : 3))) throw new Error("invalid vote");
-      if (body.userId != null && (typeof body.userId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.userId))) throw new Error("invalid user");
+      if (!['lookup', 'restore', 'login', 'vote', 'voting-status'].includes(body.action)) throw new Error("invalid action");
+      if (body.action !== "voting-status") {
+        if (body.loginVersion != null && (!Number.isInteger(body.loginVersion) || body.loginVersion < 0 || body.loginVersion > 2147483647)) throw new Error("invalid login version");
+        if (typeof body.phone !== "string") throw new Error("invalid phone");
+        body.phone = body.phone.replace(/[-\s]/g, "");
+        if (!/^010\d{8}$/.test(body.phone)) throw new Error("invalid phone");
+        if (body.nickname != null && typeof body.nickname !== "string") throw new Error("invalid nickname");
+        body.nickname = (body.nickname ?? "").trim().normalize("NFC") || null;
+        if (body.nickname && !/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9]{1,6}$/.test(body.nickname)) throw new Error("invalid nickname");
+        if (body.action === "vote" && (!['O', 'S', 'C', 'A'].includes(body.house) || !Number.isInteger(body.candidate)
+            || body.candidate < 1 || body.candidate > (body.house === "S" ? 4 : 3))) throw new Error("invalid vote");
+        if (body.userId != null && (typeof body.userId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.userId))) throw new Error("invalid user");
+      }
     } catch {
       return reply({ message: "전화번호, 닉네임 또는 투표할 후보를 다시 확인해 주세요." }, 400);
     }
     if (!url || !secretKey) return reply({ message: "연결을 준비하고 있습니다. 잠시 후 다시 시도해 주세요." }, 503);
     try {
-      const result = await fetchImpl(`${url}/rest/v1/rpc/osca_dispatch`, {
+      const result = await fetchImpl(`${url}/rest/v1/rpc/${body.action === "voting-status" ? "osca_voting_status" : "osca_dispatch"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: secretKey,
           ...(secretKey.startsWith("sb_secret_") ? {} : { Authorization: `Bearer ${secretKey}` }) },
-        body: JSON.stringify({ p_action: body.action, p_phone: body.phone, p_nickname: body.nickname,
+        body: JSON.stringify(body.action === "voting-status" ? {} : { p_action: body.action, p_phone: body.phone, p_nickname: body.nickname,
           p_house: body.action === "vote" ? body.house : null,
           p_candidate: body.action === "vote" ? body.candidate : null,
           p_user_id: body.action === "vote" ? body.userId ?? null : null,
@@ -50,7 +52,9 @@ export function createHandler({ url, secretKey, fetchImpl = fetch }) {
         console.error("OSCA DB 요청 실패", result.status, error.code ?? "unknown");
         return reply({ message: "저장하거나 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." }, 503);
       }
-      return reply(await result.json());
+      const data = await result.json();
+      if (data?.status === "closed") return reply({ ...data, message: data.voting?.message }, 409);
+      return reply(data);
     } catch {
       return reply({ message: "연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요." }, 503);
     }

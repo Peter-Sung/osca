@@ -26,6 +26,26 @@ test("하우스별 후보 범위와 다음 미투표 순서", () => {
   assert.equal(store.nextHouse(votes), "O");
   for (const [h, next] of [["O", "S"], ["S", "C"], ["C", undefined]]) { votes[h] = record; assert.equal(store.nextHouse(votes), next); }
 });
+test("투표 상태 조회는 사용자 저장소를 바꾸지 않고 두 줄 안내를 정규화한다", async () => {
+  const storage = memoryStorage();
+  const client = makeClient(storage, (_, options) => {
+    assert.deepEqual(JSON.parse(options.body), { action: "voting-status" });
+    return json({ enabled: false, messageKey: "paused", message: "ignored", updatedAt: "2026-10-12T00:00:00Z" });
+  });
+  const status = await client.getVotingStatus();
+  assert.equal(status.message, "운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요.");
+  assert.equal(storage.data.size, 0); assert.equal(client.state.status, "guest");
+});
+test("투표 중단은 재조회로 기존 투표를 저장 성공으로 바꾸지 않는다", async () => {
+  let calls = 0;
+  const client = makeClient(memoryStorage(), () => {
+    calls++;
+    return json({ status: "closed", message: "아직 투표기간이 아닙니다.", voting: { enabled: false, messageKey: "not-started", updatedAt: "2026-10-12T00:00:00Z" } }, 409);
+  });
+  client.adopt(found({ O: record }));
+  await assert.rejects(client.vote(user, "O", 1), error => error.code === "voting-closed" && !error.voting.enabled);
+  assert.equal(calls, 1); assert.equal(client.state.votes.O.candidate, record.candidate);
+});
 test("로컬 사용자 없이 진입하면 기존 임시 투표만 폐기하고 DB 조회하지 않는다", async () => {
   const storage = memoryStorage({ [store.legacyKey]: JSON.stringify({ O: record }), other: "유지" });
   const client = makeClient(storage, () => { throw new Error("unexpected fetch"); });

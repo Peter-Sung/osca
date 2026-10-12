@@ -23,7 +23,8 @@ export function createAdminHandler({ url, secretKey, fetchImpl = fetch }) {
       if (raw.length > 8192) throw new Error();
       body = JSON.parse(raw);
       if (!body || typeof body !== "object" || Array.isArray(body)
-        || !["login", "session", "dashboard", "users", "delete", "logout", "logout-user"].includes(body.action)) throw new Error();
+        || !["login", "session", "dashboard", "users", "delete", "logout", "logout-user", "voting", "set-voting"].includes(body.action)) throw new Error();
+      if (body.action === "set-voting" && (typeof body.enabled !== "boolean" || !["not-started", "paused"].includes(body.messageKey))) throw new Error();
       if (body.action === "logout-user" && !uuid.test(body.userId ?? "")) throw new Error();
       if (body.action === "login" && (typeof body.password !== "string" || !body.password
         || new TextEncoder().encode(body.password).length > 64)) throw new Error();
@@ -42,7 +43,11 @@ export function createAdminHandler({ url, secretKey, fetchImpl = fetch }) {
       } else {
         token = request.headers.get("Authorization")?.match(/^Bearer ([0-9a-f]{64})$/)?.[1];
         if (!token) return reply({ message: "관리자 로그인이 필요합니다." }, 401);
-        result = body.action === "logout-user"
+        result = ["voting", "set-voting"].includes(body.action)
+          ? await rpc("osca_admin_voting", { p_token_hash: await hash(token),
+            p_enabled: body.action === "set-voting" ? body.enabled : null,
+            p_message_key: body.action === "set-voting" ? body.messageKey : null })
+          : body.action === "logout-user"
           ? await rpc("osca_admin_logout_user", { p_token_hash: await hash(token), p_user_id: body.userId })
           : await rpc("osca_admin_dispatch", { p_token_hash: await hash(token), p_action: body.action,
           p_search: (body.search ?? "").trim(), p_page: body.page ?? 1, p_user_id: body.userId ?? null,

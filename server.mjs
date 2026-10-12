@@ -1,8 +1,9 @@
 // 공개 화면 파일만 제공하는 오스카 빌리지 로컬 미리보기 서버입니다.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createAdminProxy } from "./admin-proxy.mjs";
-const adminProxy = createAdminProxy({ endpoint: "https://cisfvzotckftsyqodxud.supabase.co/functions/v1/osca-admin" });
 
 const publicFiles = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
@@ -23,18 +24,29 @@ const publicFiles = new Map([
     [`/asset/${name}.png`, [`asset/${name}.png`, "image/png"]]),
 ]);
 
-const server = createServer(async (request, response) => {
-  if (new URL(request.url, "http://localhost").pathname.startsWith("/wic_admin/api/")) {
+export function createPreviewServer({
+  adminProxy = createAdminProxy({ endpoint: "https://cisfvzotckftsyqodxud.supabase.co/functions/v1/osca-admin" }),
+  voteHandler, config,
+} = {}) {
+  return createServer(async (request, response) => {
+  const pathname = new URL(request.url, "http://localhost").pathname;
+  if (voteHandler && pathname === "/api/dev-vote") {
+    await voteHandler(request, response); return;
+  }
+  if (pathname.startsWith("/wic_admin/api/")) {
     await adminProxy(request, response); return;
   }
-  const file = publicFiles.get(new URL(request.url, "http://localhost").pathname);
+  const file = publicFiles.get(pathname);
   if (!file || !["GET", "HEAD"].includes(request.method)) {
     response.writeHead(404).end("Not found");
     return;
   }
   try {
-    const data = await readFile(new URL(file[0], import.meta.url));
+    const data = config && file[0] === "config.js"
+      ? Buffer.from(`window.OSCA_CONFIG = ${JSON.stringify(config)};`)
+      : await readFile(new URL(file[0], import.meta.url));
     response.writeHead(200, { "Content-Type": file[1], "X-Content-Type-Options": "nosniff",
+      ...(file[0] === "config.js" ? { "Cache-Control": "no-store" } : {}),
       ...(file[0].startsWith("admin.") ? { "Cache-Control": "no-store", "X-Frame-Options": "DENY",
         "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'" } : {}) });
     response.end(request.method === "HEAD" ? undefined : data);
@@ -42,8 +54,11 @@ const server = createServer(async (request, response) => {
     console.error("화면 파일을 읽지 못했습니다.", error.message);
     response.writeHead(500).end("Unable to load file");
   }
-});
+  });
+}
 
-server.listen(5173, "127.0.0.1", () => {
-  console.log("오스카 빌리지 미리보기: http://127.0.0.1:5173");
-});
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+  createPreviewServer().listen(5173, "127.0.0.1", () => {
+    console.log("오스카 빌리지 미리보기: http://127.0.0.1:5173");
+  });
+}

@@ -438,6 +438,10 @@ body:has(dialog[open]) { overflow: hidden; }
 .board-vote:hover { background: #ffe9a82b; box-shadow: 0 0 16px #ffe29d80; }
 .board-vote:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
 .board-vote:disabled { cursor: default; }
+.board-vote.is-closed { left:8% !important; width:84% !important; top:83% !important; height:15% !important; }
+.board-vote.is-closed.has-label span { padding:8px; white-space:pre; font-size:clamp(13px,1.5vw,18px); line-height:1.5; background:#fffaf0; }
+.board-vote:disabled:hover { box-shadow:none; background:transparent; }
+#vote-message { white-space:pre-line; }
 .board-vote.has-label span {
   display: grid;
   place-items: center;

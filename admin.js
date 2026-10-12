@@ -5,9 +5,11 @@ const completionColors = ["#aebac8", "#9bc9ef", "#649cce", "#386eaa", "#173f73"]
 const percentFormat = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 });
 const $ = (id) => document.getElementById(id);
 const timeFormat = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+const votingControlEnabled = typeof window !== "undefined" && window.OSCA_CONFIG?.votingControlEnabled === true;
 let expiresAt = 0, page = 1, total = 0, search = "", users = [], currentView = "dashboard";
 let userRequest = 0, dashboardRequest = 0, pendingDelete, deleting = false, loginBusy = false;
 let pendingUserLogout, userLogoutBusy = false;
+let votingSettings = null, votingDraft = null, votingBusy = false, votingRequest = 0;
 function node(tag, text, className) {
   const element = document.createElement(tag);
   if (text !== undefined) element.textContent = text;
@@ -15,6 +17,7 @@ function node(tag, text, className) {
   return element;
 }
 function showLogin(message = "") {
+  votingRequest++; votingSettings = votingDraft = null; renderVotingControls();
   expiresAt = 0; userRequest++; dashboardRequest++; users = [];
   $("admin-workspace").hidden = true; $("admin-login").hidden = false;
   $("admin-password").value = "";
@@ -174,7 +177,7 @@ async function loadUsers() {
 }
 async function refresh() {
   $("admin-refresh").disabled = true; notice("현황을 확인하고 있어요…");
-  try { await Promise.all([loadDashboard(), loadUsers()]); notice(""); }
+  try { await Promise.all([loadDashboard(), loadUsers(), loadVoting()]); notice(""); }
   catch (error) { handleError(error); }
   finally { $("admin-refresh").disabled = false; }
 }
@@ -187,6 +190,39 @@ function openDelete(entry, house) {
   $("admin-delete-reason").value = ""; $("admin-delete-error").hidden = true;
   $("admin-delete-dialog").showModal();
 }
+function renderVotingControls() {
+  document.querySelector(".voting-control").hidden = !votingControlEnabled;
+  const available = Boolean(votingSettings) && !votingBusy;
+  const enabled = Boolean(votingSettings?.enabled);
+  $("admin-voting-switch").disabled = !available;
+  $("admin-voting-switch").setAttribute("aria-checked", String(enabled));
+  $("admin-voting-switch-label").textContent = enabled ? "On" : "Off";
+  $("admin-voting-messages").disabled = !available;
+  $("admin-voting-state").textContent = votingBusy ? "투표 설정을 저장하고 있습니다."
+    : !votingSettings ? "투표 설정을 확인하고 있습니다." : enabled ? "투표 접수 중 · On" : "투표 접수 중단 · Off";
+  document.querySelector(".voting-control").classList.toggle("is-open", enabled);
+  for (const radio of document.querySelectorAll('[name="voting-message"]')) radio.checked = radio.value === (votingDraft?.messageKey || votingSettings?.messageKey || "not-started");
+}
+async function loadVoting() {
+  if (!votingControlEnabled || votingBusy) return;
+  const sequence = ++votingRequest;
+  const { data } = await request("voting");
+  if (sequence !== votingRequest) return;
+  votingSettings = data; renderVotingControls();
+}
+async function saveVoting(enabled, messageKey) {
+  if (!votingSettings || votingBusy) return;
+  const sequence = ++votingRequest;
+  votingBusy = true; votingDraft = { enabled, messageKey }; renderVotingControls();
+  try {
+    const { data } = await request("set-voting", { enabled, messageKey });
+    if (sequence !== votingRequest) return;
+    votingSettings = data;
+    notice(data.enabled ? "투표를 개시했습니다." : "투표를 중단했습니다. 선택한 안내가 사용자 화면에 표시됩니다.");
+  } catch (error) {
+    if (sequence === votingRequest) handleError(error);
+  } finally { votingBusy = false; votingDraft = null; renderVotingControls(); }
+}
 $("admin-login-form").addEventListener("submit", async (event) => {
   event.preventDefault(); if (loginBusy) return; loginBusy = true;
   $("admin-login-submit").disabled = true; $("admin-login-error").hidden = true;
@@ -195,6 +231,10 @@ $("admin-login-form").addEventListener("submit", async (event) => {
   catch (error) { $("admin-login-error").textContent = error.message; $("admin-login-error").hidden = false; }
   finally { loginBusy = false; $("admin-login-submit").disabled = false; }
 });
+$("admin-voting-switch").addEventListener("click", () => saveVoting(!votingSettings.enabled, votingSettings.messageKey));
+document.querySelectorAll('[name="voting-message"]').forEach((radio) => radio.addEventListener("change", () => {
+  if (radio.checked) saveVoting(votingSettings.enabled, radio.value);
+}));
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => {
   currentView = button.dataset.view;
   $("dashboard-view").hidden = currentView !== "dashboard"; $("users-view").hidden = currentView !== "users";

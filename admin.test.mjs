@@ -58,7 +58,8 @@ test("비율은 소수 첫째 자리로 표시하고 막대 계산에는 반올�
 });
 test("관리자 세션 없이 대시보드·검색·삭제·로그아웃은 DB에 전달되지 않는다", async () => {
   const run = handler(() => { throw new Error("unexpected RPC"); });
-  for (const action of ["dashboard", "session", "users", "logout"]) assert.equal((await run(req({ action }))).status, 401);
+  for (const action of ["dashboard", "session", "users", "logout", "voting"]) assert.equal((await run(req({ action }))).status, 401);
+  assert.equal((await run(req({ action: "set-voting", enabled: true, messageKey: "paused" }))).status, 401);
   assert.equal((await run(req({ action: "logout-user", userId: "00000000-0000-4000-8000-000000000001" }))).status, 401);
   assert.equal((await run(req({ action: "delete", userId: "00000000-0000-4000-8000-000000000001", expected: {} }))).status, 401);
 });
@@ -77,6 +78,23 @@ test("사용자 로그아웃은 관리자 토큰·사용자 ID를 검증하고 �
     assert.equal((await post(url, "logout-user", { userId })).status, 401);
     assert.equal((await post(url, "logout-user", { userId }, { Cookie: `osca_admin_session=${token}`, Origin: "https://evil.test" })).status, 403);
     assert.equal((await post(url, "logout-user", { userId }, { Cookie: `osca_admin_session=${token}` })).status, 200);
+  });
+});
+test("투표 설정은 관리자 세션·허용 문구를 검증하고 전용 RPC로 전달한다", async () => {
+  const run = handler((url, options) => {
+    assert.match(url, /osca_admin_voting$/);
+    assert.deepEqual(JSON.parse(options.body), { p_token_hash: createHash("sha256").update(token).digest("hex"), p_enabled: false, p_message_key: "paused" });
+    return json({ status: "ok", data: { enabled: false, messageKey: "paused" }, expiresAt });
+  });
+  for (const body of [{ enabled: "false", messageKey: "paused" }, { enabled: true, messageKey: "custom" }, { enabled: true }]) {
+    assert.equal((await run(req({ action: "set-voting", ...body }, { Authorization: `Bearer ${token}` }))).status, 400);
+  }
+  const response = await run(req({ action: "set-voting", enabled: false, messageKey: "paused" }, { Authorization: `Bearer ${token}` }));
+  assert.equal(response.status, 200); assert.equal((await response.json()).data.enabled, false);
+  await withProxy(() => json({ data: { enabled: false } }), async (url) => {
+    assert.equal((await post(url, "set-voting", { enabled: false, messageKey: "paused" })).status, 401);
+    assert.equal((await post(url, "set-voting", {}, { Cookie: `osca_admin_session=${token}`, Origin: "https://evil.test" })).status, 403);
+    assert.equal((await post(url, "set-voting", {}, { Cookie: `osca_admin_session=${token}` })).status, 200);
   });
 });
 test("브라우저 직접 호출과 잘못된 입력을 서버에서 차단한다", async () => {

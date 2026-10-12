@@ -1,5 +1,6 @@
 -- 관리자 인증·집계·검색·삭제·재투표·감사 실패의 원자성을 임시 트랜잭션 안에서 검증합니다.
 begin;
+update osca_admin.voting_settings set enabled=true where singleton;
 update osca_admin.credentials set password_hash=extensions.crypt('temporary-admin-test',extensions.gen_salt('bf',12)) where singleton;
 update osca_admin.login_guard set failures=0,blocked_until=null,window_start=now() where singleton;
 set local role service_role;
@@ -64,6 +65,7 @@ rollback;
 
 begin;
 revoke insert on osca_admin.delete_audit from service_role;
+update osca_admin.voting_settings set enabled=true where singleton;
 set local role service_role;
 do $$
 declare r jsonb; v_id uuid; failed boolean:=false;

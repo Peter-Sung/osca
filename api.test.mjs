@@ -2,6 +2,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHandler } from "./supabase/functions/osca-api/handler.mjs";
+test("투표 상태 조회는 개인정보 없이 읽기 전용 RPC를 호출한다", async () => {
+  const run = createHandler({ url: "https://db.test", secretKey: "sb_secret_test", fetchImpl: async (url, options) => {
+    assert.match(url, /osca_voting_status$/); assert.deepEqual(JSON.parse(options.body), {});
+    return new Response(JSON.stringify({ enabled: false, messageKey: "not-started" }));
+  } });
+  const response = await run(new Request("https://api.test", { method: "POST", body: JSON.stringify({ action: "voting-status", enabled: true }) }));
+  assert.equal(response.status, 200); assert.equal((await response.json()).enabled, false);
+});
+test("투표 중단 응답은 선택 문구와 상태를 409로 전달한다", async () => {
+  const voting = { enabled: false, messageKey: "paused", message: "운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요." };
+  const run = createHandler({ url: "https://db.test", secretKey: "sb_secret_test", fetchImpl: async () => new Response(JSON.stringify({ status: "closed", voting })) });
+  const response = await run(new Request("https://api.test", { method: "POST", body: JSON.stringify({ action: "vote", phone: "01000009901", house: "O", candidate: 1 }) }));
+  assert.equal(response.status, 409); const body = await response.json(); assert.equal(body.status, "closed"); assert.equal(body.message, voting.message);
+});
 const request = (body, method = "POST") => new Request("https://api.example.test", {
   method, ...(method === "POST" ? { body: JSON.stringify(body) } : {}),
 });

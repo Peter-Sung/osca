@@ -253,6 +253,40 @@ let currentHouse;
 let boardRequest = 0;
 let screenRequest = 0;
 let screenAnimation;
+const votingControlEnabled = window.OSCA_CONFIG?.votingControlEnabled === true;
+let votingState = votingControlEnabled ? null : { enabled: true };
+let votingError = "", votingRefresh, votingRequest = 0, votingCheckBusy = false;
+
+function votingClosedMessage() {
+  return votingError || votingState?.message || "투표 상태를 확인하고 있습니다.";
+}
+function applyVotingState(data) {
+  if (votingState && Date.parse(data.updatedAt) < Date.parse(votingState.updatedAt)) return;
+  votingState = data; votingError = "";
+  refreshVoteStatus();
+  if (!data.enabled && voteDialog.open && !voteBusy && ["confirm", "save-error"].includes(voteStep)) {
+    showVotePrompt("error", "투표 안내", data.message, "");
+  }
+}
+function refreshVoting() {
+  if (!votingControlEnabled) return Promise.resolve(Boolean(votingState?.enabled));
+  if (votingRefresh) return votingRefresh;
+  const sequence = ++votingRequest;
+  votingRefresh = (async () => {
+    try {
+      const data = await client.getVotingStatus();
+      if (sequence === votingRequest) applyVotingState(data);
+    } catch {
+      if (sequence === votingRequest) {
+        votingState = null;
+        votingError = "투표 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        refreshVoteStatus();
+      }
+    } finally { votingRefresh = undefined; }
+    return Boolean(votingState?.enabled);
+  })();
+  return votingRefresh;
+}
 
 // 소개가 준비된 하우스만 후보 순서에 맞춰 연결합니다.
 for (const room of Object.values(rooms)) {
@@ -435,6 +469,7 @@ async function openCandidateBoard(index) {
   }
   if (request !== boardRequest || candidateDialog.open) return;
   candidateDialog.showModal();
+  refreshVoting();
   boardContent.scrollTo({ top: 0, behavior: "instant" });
   updateScrollHint();
   boardTabs.children[index].focus({ preventScroll: true });
@@ -460,10 +495,12 @@ function refreshVoteStatus() {
   loginMessage.textContent = checking ? "로그인 확인 중…" : failed ? "연결을 확인해 주세요" : "";
   loginRetry.title = state.error;
   const vote = votes[currentHouse];
-  boardVote.disabled = voteBusy || checking || Boolean(vote);
-  const label = checking ? "확인 중" : failed ? "다시 확인" : vote ? "투표 완료" : "";
+  const closed = !votingState?.enabled;
+  boardVote.disabled = closed || votingCheckBusy || voteBusy || checking || Boolean(vote);
+  const label = closed ? votingClosedMessage() : votingCheckBusy || checking ? "확인 중" : failed ? "다시 확인" : vote ? "투표 완료" : "";
   boardVoteLabel.textContent = label;
   boardVote.classList.toggle("has-label", Boolean(label));
+  boardVote.classList.toggle("is-closed", closed);
   boardVote.setAttribute("aria-label", label || "투표하기");
   boardVoteStatus.textContent = failed ? state.error : vote ? `${rooms[currentHouse].name} · 후보 ${vote.candidate}에게 투표했습니다.` : "";
   boardVoteStatus.hidden = !failed && !vote;
@@ -582,6 +619,9 @@ function showCurrentVote() {
     `${rooms[pendingVote.house].name} · 후보 ${vote.candidate}에게 한 최초 투표를 유지합니다.`);
 }
 function confirmPendingVote() {
+  if (!votingState?.enabled) {
+    showVotePrompt("error", "투표 안내", votingClosedMessage(), ""); return;
+  }
   showVotePrompt("confirm", "투표 확인",
     `${rooms[pendingVote.house].name}의 후보 ${pendingVote.candidate}에게 투표를 하시겠습니까?`,
     "한 번만 투표할 수 있으며, 저장 후에는 변경할 수 없습니다.");
@@ -649,8 +689,13 @@ function showVotePrompt(step, heading, message, detail) {
 }
 
 boardVote.addEventListener("click", async () => {
-  if (identityBusy || voteBusy || client.state.status === "checking") return;
-  pendingVote = { house: currentHouse, candidate: Number(boardContent.dataset.candidate) };
+  if (votingCheckBusy || identityBusy || voteBusy || client.state.status === "checking") return;
+  const selection = { house: currentHouse, candidate: Number(boardContent.dataset.candidate) };
+  votingCheckBusy = true; refreshVoteStatus();
+  try { await refreshVoting(); }
+  finally { votingCheckBusy = false; refreshVoteStatus(); }
+  if (!votingState?.enabled || !candidateDialog.open || currentHouse !== selection.house) return;
+  pendingVote = selection;
   draftIdentity = undefined;
   const request = ++operationRequest;
   if (client.state.status === "error") {
@@ -671,6 +716,7 @@ function goTo(house) {
 voteYes.addEventListener("click", async () => {
   if (voteBusy) return;
   if (voteStep === "confirm" || voteStep === "save-error") {
+    if (!votingState?.enabled) { showVotePrompt("error", "투표 안내", votingClosedMessage(), ""); return; }
     const selection = { ...pendingVote };
     const request = ++operationRequest;
     const identity = draftIdentity || client.state.user;
@@ -681,8 +727,11 @@ voteYes.addEventListener("click", async () => {
     let result;
     try {
       result = await client.vote(identity, selection.house, selection.candidate);
-    } catch {
-      if (request === operationRequest) showVotePrompt("save-error", "저장 안내", "투표를 저장하지 못했어요.",
+    } catch (error) {
+      if (error.code === "voting-closed") {
+        votingRequest++; applyVotingState(error.voting);
+        if (request === operationRequest) showVotePrompt("error", "투표 안내", error.voting.message, "");
+      } else if (request === operationRequest) showVotePrompt("save-error", "저장 안내", "투표를 저장하지 못했어요.",
         "이용에 불편을 드려 죄송해요. 잠시 후 다시 시도해 주세요. 저장이 확인되어야 투표가 완료됩니다.");
       return;
     } finally {
@@ -742,6 +791,7 @@ window.addEventListener("storage", (event) => {
   }
 });
 document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshVoting();
   if (!document.hidden && !voteBusy && !identityBusy) client.restore().catch(() => {});
 });
 
@@ -838,3 +888,6 @@ async function transitionScreen() {
 window.addEventListener("hashchange", transitionScreen);
 renderScreen();
 client.restore().catch(() => {});
+refreshVoting();
+setInterval(() => { if (!document.hidden) refreshVoting(); }, 10000);
+window.addEventListener("focus", refreshVoting);

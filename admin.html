@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/asset/favicon-192.png?v=2">
   <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css">
   <script src="/display-guard.js" defer></script>
+  <script src="/config.js" defer></script>
   <script src="/admin.js" defer></script>
 </head><body class="admin-body">
   <div id="service-content">
@@ -28,6 +29,18 @@
       <nav class="admin-nav" aria-label="관리 화면"><button class="active" id="dashboard-tab" data-view="dashboard" type="button" aria-pressed="true">대시보드</button><button id="users-tab" data-view="users" type="button" aria-pressed="false">사용자 · 투표 내역</button></nav>
       <p class="admin-notice" id="admin-notice" role="status" hidden></p>
       <div id="dashboard-view">
+        <section class="chart-panel voting-control" aria-labelledby="voting-control-title" hidden>
+          <div class="panel-heading">
+            <div><h2 id="voting-control-title">투표 개시</h2><p class="voting-control-note">On일 때만 사용자가 투표할 수 있습니다. 변경 사항은 즉시 저장됩니다.</p></div>
+            <button id="admin-voting-switch" class="voting-switch" type="button" role="switch" aria-checked="false" aria-label="투표 개시" disabled><span class="switch-track" aria-hidden="true"></span><span id="admin-voting-switch-label">Off</span></button>
+          </div>
+          <p id="admin-voting-state" class="voting-state" role="status">투표 설정을 확인하고 있습니다.</p>
+          <fieldset id="admin-voting-messages" class="voting-messages" disabled>
+            <legend>Off 상태에서 표시할 안내</legend>
+            <label class="voting-message-option"><input type="radio" name="voting-message" value="not-started" checked><span>아직 투표기간이 아닙니다.</span></label>
+            <label class="voting-message-option"><input type="radio" name="voting-message" value="paused"><span>운영자에 의해 투표가 잠시 닫혔습니다.<br>잠시만 기다려 주세요.</span></label>
+          </fieldset>
+        </section>
         <div class="metric-grid" id="admin-metrics"></div>
         <section class="chart-panel"><div class="panel-heading"><h2>투표 완료 수별 사용자 비중</h2><span id="completion-basis">전체 가입자 기준</span></div><div id="completion-chart"></div></section>
         <p class="chart-color-note">완료 현황은 파랑 계열로 구분합니다. 아래 색상은 하우스를 나타내며, 후보 순위는 배지로 표시합니다.</p>

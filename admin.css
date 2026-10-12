@@ -1,4 +1,21 @@
 /* 크림색과 OSCA 핑크·녹색으로 관리자 대시보드와 반응형 차트를 꾸밉니다. */
+.voting-control { margin-bottom:24px; }
+.voting-control-note { margin:10px 0 0; color:#737e6e; font-size:13px; line-height:1.6; }
+.voting-state { margin:18px 0; color:#737e6e; font-size:13px; }
+.voting-control.is-open .voting-state { color:#355742; font-weight:600; }
+.admin-body .voting-switch { display:flex; align-items:center; gap:10px; flex-shrink:0; min-width:108px; border:0; background:transparent; font-weight:700; font-size:15px; }
+.switch-track { position:relative; display:block; width:48px; height:28px; border-radius:999px; background:#a3aaa0; transition:background .2s; }
+.switch-track::after { content:""; position:absolute; top:4px; left:4px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+[aria-checked="true"] .switch-track { background:#e5007d; }
+[aria-checked="true"] .switch-track::after { transform:translateX(20px); }
+.voting-messages { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0; padding:0; border:0; }
+.voting-messages legend { margin-bottom:12px; font-size:13px; font-weight:600; }
+.admin-body .voting-message-option { display:flex; align-items:center; gap:12px; margin:0; padding:16px; border:1px solid #dddfcf; border-radius:12px; font-size:13px; font-weight:400; line-height:1.7; cursor:pointer; }
+.voting-message-option:has(input:checked) { background:#fff5fa; border-color:#e5007d; }
+.admin-body .voting-message-option input { width:18px; height:18px; flex-shrink:0; margin:0; accent-color:#e5007d; }
+.voting-messages:disabled { opacity:.65; }
+@media (max-width:1100px) { .voting-messages { grid-template-columns:1fr; } }
+@media (prefers-reduced-motion:reduce) { .switch-track,.switch-track::after { transition:none; } }
 .admin-body { color:#313d34; background:#f5f3ea; }
 .admin-header { display:flex; align-items:center; justify-content:space-between; padding:24px max(24px,calc((100vw - 1200px)/2)); border-bottom:1px solid #dedfd2; background:#fffdf7; }
 .admin-brand { color:#e5007d; font-size:28px; font-weight:800; text-decoration:none; letter-spacing:-1px; }

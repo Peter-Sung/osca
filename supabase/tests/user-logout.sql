@@ -1,5 +1,6 @@
 -- 임시 사용자와 관리자 세션으로 로그아웃·재로그인·투표 보존을 검사한 뒤 모두 롤백합니다.
 begin;
+update osca_admin.voting_settings set enabled=true where singleton;
 do $$ begin
   assert not exists(select 1 from public.osca_users where phone in('01000009781','01000009782')),'reserved numbers must be unused';
   assert not exists(select 1 from osca_admin.sessions where token_hash=repeat('8',64)),'reserved session must be unused';

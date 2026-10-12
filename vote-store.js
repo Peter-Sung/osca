@@ -23,7 +23,7 @@ const voteStore = (() => {
     if (!data || typeof data.enabled !== "boolean" || !["not-started", "paused"].includes(data.messageKey)
       || !Number.isFinite(Date.parse(data.updatedAt))) throw new Error(retryMessage);
     return { ...data, message: data.messageKey === "paused"
-      ? "운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요." : "아직 투표기간이 아닙니다." };
+      ? "운영자에 의해 투표가 종료 되었습니다." : "아직 투표기간이 아닙니다." };
   }
 
   function createClient({ endpoint, storage, fetchImpl = fetch, onChange = () => {} }) {

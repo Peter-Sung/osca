@@ -27,7 +27,7 @@ begin
   r:=public.osca_dispatch('vote','01000009601',null,'O',1,v_id,0);
   assert r->>'status'='saved','On allows vote';
   perform public.osca_admin_voting(repeat('7',64),false,'paused');
-  assert public.osca_voting_status()->>'message'=E'운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요.','exactly two lines';
+  assert public.osca_voting_status()->>'message'='운영자에 의해 투표가 종료 되었습니다.','closed message';
   r:=public.osca_dispatch('vote','01000009601',null,'S',1,v_id,0);
   assert r->>'status'='closed' and r->'voting'->>'messageKey'='paused','Off stops subsequent votes';
   assert (select count(*) from public.osca_votes)=baseline+1,'closed votes never inserted';

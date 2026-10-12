@@ -430,6 +430,9 @@ async function openCandidateBoard(index) {
   candidateDialog.style.setProperty("--board-content-right", `${100 - lastTabLeft - lastTabWidth}%`);
   boardImage.src = `asset/${currentHouse}_desc_board_vote.png`;
   positionElement(boardVote, room.voteBounds);
+  boardVote.style.setProperty("--vote-center-y", `${room.voteBounds[1] + room.voteBounds[3] / 2}%`);
+  boardVote.style.setProperty("--vote-height", `${room.voteBounds[3]}%`);
+  boardVote.style.setProperty("--vote-width", `${room.voteBounds[2]}%`);
   refreshVoteStatus();
   boardTabs.replaceChildren();
   room.tabs.forEach((bounds, tabIndex) => {

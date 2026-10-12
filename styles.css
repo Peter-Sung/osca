@@ -438,8 +438,16 @@ body:has(dialog[open]) { overflow: hidden; }
 .board-vote:hover { background: #ffe9a82b; box-shadow: 0 0 16px #ffe29d80; }
 .board-vote:focus-visible { outline: 3px solid #355742; outline-offset: 3px; }
 .board-vote:disabled { cursor: default; }
-.board-vote.is-closed { left:8% !important; width:84% !important; top:83% !important; height:15% !important; }
-.board-vote.is-closed.has-label span { padding:8px; white-space:pre; font-size:clamp(13px,1.5vw,18px); line-height:1.5; background:#fffaf0; }
+.board-vote.is-closed {
+  left:50% !important;
+  top:var(--vote-center-y) !important;
+  transform:translate(-50%,-50%);
+  width:max-content !important;
+  max-width:84%;
+  min-width:var(--vote-width);
+  height:max(var(--vote-height),calc(clamp(26px,3vw,36px) * 1.3 + 28px)) !important;
+}
+.board-vote.is-closed.has-label span { padding:12px 24px; white-space:pre; font-size:clamp(26px,3vw,36px); line-height:1.3; background:#fffaf0; }
 .board-vote:disabled:hover { box-shadow:none; background:transparent; }
 #vote-message { white-space:pre-line; }
 .board-vote.has-label span {

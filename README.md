@@ -61,7 +61,9 @@ npm run test:db
 Off일 때 일반 화면의 투표 버튼은 비활성화되고 아래 두 문구 중 선택한 안내가 표시됩니다.
 
 - `아직 투표기간이 아닙니다.`
-- `운영자에 의해 투표가 잠시 닫혔습니다.` 다음 줄에 `잠시만 기다려 주세요.`
+- `운영자에 의해 투표가 종료 되었습니다.`
+
+Off 안내는 기존보다 글자를 두 배로 키우고 문구 길이에 맞는 작은 영역으로 표시합니다. 각 하우스의 기존 투표 버튼 중앙 위치를 유지합니다.
 
 사용자 화면은 10초마다, 후보 보드를 열 때, 탭으로 돌아올 때, 투표 버튼을 누를 때 상태를 갱신합니다. 상태 조회가 실패하면 투표 버튼을 활성화하지 않습니다. DB에서도 Off 상태의 저장을 차단하므로 이전 화면이나 직접 API 요청으로 우회할 수 없습니다. Off는 기존 사용자·투표 기록을 삭제하지 않으며 가입·로그인과 후보 소개 조회는 계속 이용할 수 있습니다.
 
@@ -69,12 +71,12 @@ Off일 때 일반 화면의 투표 버튼은 비활성화되고 아래 두 문�
 
 운영 반영 시 아래 변경을 함께 배포해야 합니다. DB의 초기 Off 설정은 실제 투표 접수에 영향을 줍니다.
 
-1. `supabase/migrations/20261012142000_osca_voting_control.sql`을 적용합니다. `osca_admin.voting_settings`와 보호된 설정 RPC를 추가하고 기존 투표 RPC에 접수 여부 검사를 넣습니다.
+1. `supabase/migrations/20261012142000_osca_voting_control.sql`, `supabase/migrations/20261012153056_osca_voting_closed_message.sql`을 순서대로 적용합니다. `osca_admin.voting_settings`와 보호된 설정 RPC를 추가하고 기존 투표 RPC에 접수 여부 검사를 넣으며 종료 안내를 변경합니다.
 2. `supabase/functions/osca-api/`와 `supabase/functions/osca-admin/`을 배포합니다. 기존 설정대로 `verify_jwt=false`를 유지하며, 관리자는 함수 내부에서 관리자 세션을 검증합니다.
-3. 운영 DB·API 반영이 승인되고 완료된 후 `config.js`의 `votingControlEnabled`를 true로 바꾸고 Vercel에 프런트엔드와 `admin-proxy.mjs`를 함께 배포합니다. 관리자 중계에 `voting`·`set-voting` 액션이 포함되어야 합니다. 현재 개발 테스트·커밋·푸시 승인에는 이 운영 DB·API 반영이 포함되지 않습니다.
+3. 운영 DB·API 반영이 승인되고 완료된 후 `config.js`의 `votingControlEnabled`를 true로 바꾸고 Vercel에 프런트엔드와 `admin-proxy.mjs`를 함께 배포합니다. 관리자 중계에 `voting`·`set-voting` 액션이 포함되어야 합니다. 운영 DB 적용은 실제 투표 처리 함수 교체와 즉시 Off 상태의 접수 차단에 대한 구체적인 승인이 필요합니다.
 4. 관리자 대시보드에서 원하는 안내를 선택하고 실제 투표 개시 시 **On**으로 바꿉니다. 사용자 화면의 버튼과 Off 안내를 확인합니다.
 
-`supabase/tests/voting-control.sql`은 설정 권한·On/Off 저장·두 줄 메시지·Off 상태의 신규/기존 사용자 투표 차단·기존 기록 보존을 검증하고 전부 롤백합니다. 기존 관리자 DB 검증은 `supabase/tests/admin.sql`을 사용합니다.
+`supabase/tests/voting-control.sql`은 설정 권한·On/Off 저장·종료 메시지·Off 상태의 신규/기존 사용자 투표 차단·기존 기록 보존을 검증하고 전부 롤백합니다. 기존 관리자 DB 검증은 `supabase/tests/admin.sql`을 사용합니다.
 
 ### 관리자 사용
 

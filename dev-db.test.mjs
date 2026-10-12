@@ -49,7 +49,7 @@ test("개발 HTTP에서 실제 인증·중계·DB로 On 저장과 Off 거절을 
     assert.equal(result.status, 200); const saved = await result.json(); assert.equal(saved.status, "saved");
     result = await post("/wic_admin/api/set-voting", { enabled: false, messageKey: "paused" }, cookie);
     assert.equal(result.status, 200); const paused = (await result.json()).data;
-    assert.equal(paused.message, "운영자에 의해 투표가 잠시 닫혔습니다.\n잠시만 기다려 주세요.");
+    assert.equal(paused.message, "운영자에 의해 투표가 종료 되었습니다.");
     result = await post("/api/dev-vote", { action: "vote", phone, house: "S", candidate: 1, userId: saved.user.id, loginVersion: 0 });
     assert.equal(result.status, 409); assert.equal((await result.json()).status, "closed");
     result = await post("/api/dev-vote", { action: "lookup", phone });

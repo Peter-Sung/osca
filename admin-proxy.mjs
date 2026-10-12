@@ -1,6 +1,5 @@
 // 관리자 토큰을 HttpOnly 쿠키 안에 보관하고 동일 출처 요청만 Supabase로 중계합니다.
-const cookieName = "osca_admin_session";
-export function createAdminProxy({ endpoint, fetchImpl = fetch }) {
+export function createAdminProxy({ endpoint, fetchImpl = fetch, cookieName = "osca_admin_session" }) {
   return async (request, response) => {
     const action = new URL(request.url, "http://localhost").pathname.split("/").at(-1);
     const send = (data, status = 200, cookie) => {

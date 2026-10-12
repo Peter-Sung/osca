@@ -40,6 +40,7 @@ test("개발 HTTP에서 실제 인증·중계·DB로 On 저장과 Off 거절을 
     const login = await post("/wic_admin/api/login", { password: developmentPassword });
     assert.equal(login.status, 200);
     const cookie = login.headers.get("set-cookie").split(";")[0];
+    assert.ok(cookie.startsWith("osca_dev_admin_session="));
     assert.equal((await login.text()).includes("token"), false);
     let result = await post("/wic_admin/api/set-voting", { enabled: true, messageKey: "not-started" }, cookie);
     assert.equal(result.status, 200); assert.equal((await result.json()).data.enabled, true);

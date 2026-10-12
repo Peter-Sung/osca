@@ -12,8 +12,8 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), { status
 const req = (data, headers = {}) => new Request("https://example.test/admin", {
   method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(data) });
 const handler = (fetchImpl) => createAdminHandler({ url: "https://db.test", secretKey: "sb_secret_test", fetchImpl });
-async function withProxy(fetchImpl, callback) {
-  const proxy = createAdminProxy({ endpoint: "https://edge.test/admin", fetchImpl });
+async function withProxy(fetchImpl, callback, options = {}) {
+  const proxy = createAdminProxy({ endpoint: "https://edge.test/admin", fetchImpl, ...options });
   const server = createServer(proxy);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
@@ -22,6 +22,18 @@ async function withProxy(fetchImpl, callback) {
 }
 const post = (url, action, body = {}, headers = {}) => fetch(`${url}/wic_admin/api/${action}`, {
   method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+test("개발·운영 관리자 쿠키가 서로 인증하거나 덮어쓰지 않는다", async () => {
+  await withProxy(() => json({ token, expiresAt }), async url => {
+    const response = await post(url, "login", { password: "dev-admin-test" });
+    assert.match(response.headers.get("set-cookie"), /^osca_dev_admin_session=/);
+    assert.equal((await post(url, "session", {}, { Cookie: `osca_admin_session=${token}` })).status, 401);
+    assert.equal((await post(url, "session", {}, { Cookie: `osca_dev_admin_session=${token}` })).status, 200);
+  }, { cookieName: "osca_dev_admin_session" });
+  await withProxy(() => { throw new Error("development cookie must not reach production upstream"); }, async url => {
+    const response = await post(url, "session", {}, { Cookie: `osca_dev_admin_session=${token}` });
+    assert.equal(response.status, 401); assert.equal(response.headers.get("set-cookie"), null);
+  });
+});
 const chartSource = readFileSync(new URL("./admin.js", import.meta.url), "utf8").split('$("admin-login-form").addEventListener')[0];
 const charts = runInNewContext(`${chartSource}\n({ share, percent, candidateStandings })`);
 

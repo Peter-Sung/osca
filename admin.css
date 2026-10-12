@@ -1,4 +1,6 @@
 /* 크림색과 OSCA 핑크·녹색으로 관리자 대시보드와 반응형 차트를 꾸밉니다. */
+.development-login-note { padding:14px 16px; border:1px solid #d5ddca; border-radius:12px; background:#edf2e4; color:#42573b; font-size:13px; line-height:1.8; }
+.development-login-note code { color:#e5007d; font-weight:700; }
 .voting-control { margin-bottom:24px; }
 .voting-control-note { margin:10px 0 0; color:#737e6e; font-size:13px; line-height:1.6; }
 .voting-state { margin:18px 0; color:#737e6e; font-size:13px; }

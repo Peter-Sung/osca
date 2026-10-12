@@ -14,8 +14,9 @@
   <header class="admin-header"><a class="admin-brand" href="/">OSCA<span>관리자</span></a><a class="village-link" href="/">마을로 돌아가기 ↗</a></header>
   <main class="admin-main">
     <section class="admin-login" id="admin-login">
-      <p class="admin-eyebrow">OSCA · ADMINISTRATOR</p><h1>관리자 로그인</h1>
+      <p class="admin-eyebrow">OSCA · ADMINISTRATOR</p><h1 id="admin-login-title">관리자 로그인</h1>
       <p class="admin-description">참여와 투표 현황을 한눈에 확인하세요.</p>
+      <p id="development-login-note" class="development-login-note" hidden>개발 테스트 전용 화면입니다.<br>개발 전용 비밀번호: <code>dev-admin-test</code></p>
       <form id="admin-login-form"><label for="admin-password">관리자 비밀번호</label>
         <input id="admin-password" type="password" autocomplete="current-password" maxlength="64" required>
         <p class="admin-error" id="admin-login-error" role="alert" hidden></p>

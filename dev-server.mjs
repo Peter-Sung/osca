@@ -12,6 +12,7 @@ export async function createDevelopmentServer() {
   const options = { url: "http://development.invalid", secretKey: "sb_secret_development", fetchImpl: createDevelopmentRpc(db) };
   const publicHandler = createHandler(options), adminHandler = createAdminHandler(options);
   const adminProxy = createAdminProxy({ endpoint: "http://development.invalid/osca-admin",
+    cookieName: "osca_dev_admin_session",
     fetchImpl: (url, init) => adminHandler(new Request(url, init)) });
   const server = createPreviewServer({ adminProxy,
     config: { apiUrl: "/api/dev-vote", votingControlEnabled: true },

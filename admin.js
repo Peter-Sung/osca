@@ -291,6 +291,12 @@ $("admin-delete-confirm").addEventListener("click", async () => {
   } finally { deleting = false; $("admin-delete-confirm").disabled = $("admin-delete-cancel").disabled = false; }
 });
 setInterval(updateSessionTime, 15000);
+if (window.OSCA_CONFIG?.apiUrl === "/api/dev-vote") {
+  $("admin-login-title").textContent = "개발 관리자 로그인";
+  $("development-login-note").hidden = false;
+  $("admin-password").name = "development-admin-password";
+  $("admin-password").autocomplete = "off";
+}
 (async () => {
   try { await request("session"); showWorkspace(); await refresh(); }
   catch (error) { if (error.status !== 401) showLogin(error.message); }

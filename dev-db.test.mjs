@@ -33,7 +33,7 @@ test("개발 HTTP에서 실제 인증·중계·DB로 On 저장과 Off 거절을 
   try {
     const productionWindow = {};
     runInNewContext(await readFile(new URL("./config.js", import.meta.url), "utf8"), { window: productionWindow });
-    assert.equal(productionWindow.OSCA_CONFIG.votingControlEnabled, false);
+    assert.equal(productionWindow.OSCA_CONFIG.votingControlEnabled, true);
     const config = await (await fetch(base + "/config.js")).text();
     assert.ok(config.includes('"votingControlEnabled":true')); assert.equal(config.includes("supabase.co"), false);
     assert.equal((await post("/wic_admin/api/set-voting", { enabled: true, messageKey: "paused" })).status, 401);

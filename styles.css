@@ -120,8 +120,8 @@ body {
 #device-notice-description { margin: 0; font-size: 16px; line-height: 1.8; word-break: keep-all; }
 .device-notice-detail { margin: 14px 0 0; color: #82735d; font-size: 13px; line-height: 1.7; }
 @media (max-width: 1023px), (orientation: portrait) {
-  body { overflow: hidden; }
-  #service-content > * { pointer-events: none; user-select: none; }
+  body:not(.admin-body) { overflow: hidden; }
+  body:not(.admin-body) #service-content > * { pointer-events: none; user-select: none; }
   .device-notice { display: grid; background: #f6f1e6b8; backdrop-filter: blur(10px); }
   .device-notice[open] { background: transparent; backdrop-filter: none; }
 }

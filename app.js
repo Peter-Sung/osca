@@ -201,6 +201,10 @@ const boardTabs = document.getElementById("board-tabs");
 const boardContent = document.getElementById("board-content");
 const boardScrollHint = document.getElementById("board-scroll-hint");
 const boardContentObserver = new ResizeObserver(updateScrollHint);
+const reducedScrollMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let scrollPreviewPending = false;
+let scrollPreviewTimer;
+let scrollPreviewFrame;
 const boardClose = document.getElementById("board-close");
 const boardVote = document.getElementById("board-vote");
 const boardVoteLabel = document.getElementById("board-vote-label");
@@ -361,6 +365,33 @@ function renderIntroduction(content) {
   boardContentObserver.observe(article);
 }
 
+function cancelScrollPreview() {
+  scrollPreviewPending = false;
+  clearTimeout(scrollPreviewTimer);
+  cancelAnimationFrame(scrollPreviewFrame);
+}
+
+// 후보를 열었을 때 한 번만 조금 스크롤해 아래에 내용이 더 있음을 알립니다.
+function queueScrollPreview() {
+  if (!scrollPreviewPending || boardScrollHint.hidden) return;
+  scrollPreviewPending = false;
+  if (reducedScrollMotion.matches) return;
+  scrollPreviewTimer = setTimeout(() => {
+    if (!candidateDialog.open || reducedScrollMotion.matches || boardContent.scrollTop > 0) return;
+    const distance = Math.min(18, boardContent.scrollHeight - boardContent.clientHeight);
+    if (distance <= 2) return;
+    let started;
+    const step = (timestamp) => {
+      if (!candidateDialog.open || reducedScrollMotion.matches) return;
+      started ??= timestamp;
+      const progress = Math.min((timestamp - started) / 800, 1);
+      boardContent.scrollTop = progress < 1 ? distance * Math.sin(Math.PI * progress) ** 2 : 0;
+      if (progress < 1) scrollPreviewFrame = requestAnimationFrame(step);
+    };
+    scrollPreviewFrame = requestAnimationFrame(step);
+  }, 350);
+}
+
 function updateScrollHint() {
   const overflow = boardContent.scrollHeight - boardContent.clientHeight;
   const atBottom = overflow - boardContent.scrollTop <= 2;
@@ -368,10 +399,21 @@ function updateScrollHint() {
   boardScrollHint.dataset.direction = atBottom ? "up" : "down";
   boardScrollHint.firstElementChild.textContent = atBottom ? "↑" : "↓";
   boardScrollHint.setAttribute("aria-label", atBottom ? "소개 내용 최상단으로 이동" : "소개 내용 최하단으로 이동");
+  queueScrollPreview();
 }
 boardContent.addEventListener("scroll", updateScrollHint, { passive: true });
-candidateDialog.addEventListener("close", updateScrollHint);
+for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+  boardContent.addEventListener(event, cancelScrollPreview, { passive: true });
+}
+reducedScrollMotion.addEventListener("change", () => {
+  if (reducedScrollMotion.matches) cancelScrollPreview();
+});
+candidateDialog.addEventListener("close", () => {
+  cancelScrollPreview();
+  updateScrollHint();
+});
 boardScrollHint.addEventListener("click", () => {
+  cancelScrollPreview();
   boardContent.scrollTo({
     top: boardScrollHint.dataset.direction === "up" ? 0 : boardContent.scrollHeight,
     behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
@@ -406,6 +448,7 @@ function renderCandidates(room) {
 }
 
 function selectCandidate(index, focus = false) {
+  cancelScrollPreview();
   const room = rooms[currentHouse];
   boardTabs.querySelectorAll("button").forEach((tab, tabIndex) => {
     const selected = tabIndex === index;
@@ -419,6 +462,7 @@ function selectCandidate(index, focus = false) {
   boardContent.setAttribute("aria-labelledby", `candidate-tab-${index + 1}`);
   renderIntroduction(room.candidates[index].content);
   boardContent.scrollTop = 0;
+  scrollPreviewPending = true;
   updateScrollHint();
 }
 
@@ -818,7 +862,7 @@ function renderScreen({ focus = true } = {}) {
   renderCandidates(room);
   candidatePanels.hidden = !room;
 
-  sceneImage.src = room ? room.image : "asset/OSCA_home.png";
+  sceneImage.src = room ? room.image : "asset/OSCA_home.png?v=3";
   sceneImage.width = room ? 1448 : 2613;
   sceneImage.height = room ? 1086 : 1471;
   sceneImage.alt = room
@@ -832,7 +876,7 @@ function renderScreen({ focus = true } = {}) {
   scene.classList.toggle("is-village", !room);
   refreshVoteStatus();
   screenTitle.textContent = title;
-  document.title = "Innovation Award 2026";
+  document.title = "INNOVATION AWARDS 2026";
   announcement.textContent = room ? `${house} 집에 들어왔습니다.` : "오스카 빌리지입니다.";
 
   const focusTarget = room ? backLink : previousHouse
@@ -863,7 +907,7 @@ async function transitionScreen() {
   try {
     const house = location.hash.match(/^#house\/([OSCA])$/)?.[1];
     const image = new Image();
-    image.src = rooms[house]?.image || "asset/OSCA_home.png";
+    image.src = rooms[house]?.image || "asset/OSCA_home.png?v=3";
     await image.decode().catch(() => {});
     if (request !== screenRequest) return;
     screenAnimation = villageApp.animate([{ opacity }, { opacity: 0 }], {

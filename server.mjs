@@ -19,6 +19,8 @@ const publicFiles = new Map([
   ["/wic_admin/", ["admin.html", "text/html; charset=utf-8"]],
   ["/admin.js", ["admin.js", "text/javascript; charset=utf-8"]],
   ["/admin.css", ["admin.css", "text/css; charset=utf-8"]],
+  ...["O", "S", "C", "A"].map((house) =>
+    [`/asset/${house}_Intro_crop.png`, [`asset/${house}_Intro_crop.png`, "image/png"]]),
   ...["OSCA_home", "O_house", "S_house", "C_house", "A_house",
     "O_desc_board_vote", "S_desc_board_vote", "C_desc_board_vote", "A_desc_board_vote"].map((name) =>
     [`/asset/${name}.png`, [`asset/${name}.png`, "image/png"]]),

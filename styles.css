@@ -72,6 +72,7 @@
 }
 
 :root {
+  --voting-board-width: min(94vw, calc((92svh - 40px) * 1.333333), 1200px);
   font-family: 'A2z', "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   color: #493e30;
   background: #f6f1e6;
@@ -246,7 +247,7 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 
 .candidate-dialog {
-  width: min(94vw, calc((92svh - 40px) * 1.333333), 1200px);
+  width: var(--voting-board-width);
   max-width: none;
   max-height: none;
   padding: 0;
@@ -256,6 +257,68 @@ body:has(dialog[open]) { overflow: hidden; }
   color: #493e30;
 }
 .candidate-dialog::backdrop { background: #21190f66; }
+.house-intro-open {
+  position: absolute;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.house-intro-open:hover, .house-intro-open:focus-visible {
+  border-color: #fff1b8;
+  background: #fff1b823;
+  box-shadow: 0 0 18px #ffeb98aa;
+  outline: 3px solid #6f4526;
+  outline-offset: 2px;
+}
+.house-intro-dialog {
+  width: calc(var(--voting-board-width) * .5);
+  max-width: none;
+  max-height: 84svh;
+  padding: 0;
+  border: 1px solid #dac5a7;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  color: #493e30;
+  box-shadow: 0 16px 60px #140b0850;
+}
+.house-intro-dialog[open] { display: flex; flex-direction: column; }
+.house-intro-dialog.is-expanded { width: calc(var(--voting-board-width) * .92); }
+.house-intro-dialog::backdrop { background: #21190f88; }
+.house-intro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  min-height: 62px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid #e4d8c3;
+  background: #fffaf0;
+}
+.house-intro-header h2 { min-width: 0; margin: 0; font-size: clamp(15px, 1.3vw, 18px); line-height: 1.4; }
+.house-intro-tools { display: flex; flex-shrink: 0; gap: 8px; }
+.house-intro-tools button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #dac5a7;
+  border-radius: 50%;
+  background: #fff;
+  color: #513c2a;
+  font: inherit;
+  font-size: 28px;
+  cursor: pointer;
+}
+.house-intro-tools button:hover { background: #f3eddc; }
+.house-intro-tools button:focus-visible, .house-intro-content:focus-visible { outline: 3px solid #355742; outline-offset: -3px; }
+.house-intro-content { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: #b79550 #f6f1e6; }
+.house-intro-content img { display: block; width: 100%; height: auto; }
+.house-intro-dialog .house-intro-scroll-hint { right: 14px; bottom: 14px; }
 .candidate-board { position: relative; width: 100%; container-type: inline-size; }
 .board-image {
   display: block;

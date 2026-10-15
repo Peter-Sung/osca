@@ -4,6 +4,7 @@ const rooms = {
     name: "Outsight D.T", direction: "로",
     description: "서재", image: "asset/O_house.png",
     voteBounds: [38.7, 86.4, 22.8, 10.3],
+    introBounds: [42, 46, 18, 14],
     panels: [
       [[30.5, 20.7], [40, 16.7], [40, 45.4], [30.5, 49]],
       [[46, 14.7], [56.4, 14.7], [56.4, 42.6], [46, 42.6]],
@@ -47,6 +48,7 @@ const rooms = {
     name: "서비스생산시스템", direction: "으로",
     description: "음악 공간", image: "asset/S_house.png",
     voteBounds: [38.4, 84, 23, 11],
+    introBounds: [42, 45, 18, 16],
     panels: [
       [[26.5, 20.8], [36.3, 16.8], [36.3, 43.5], [26.5, 47.8]],
       [[38.5, 14.8], [48.4, 14], [48.4, 40.5], [38.5, 41.5]],
@@ -100,6 +102,7 @@ const rooms = {
     name: "컨설팅&엑셀러레이팅", direction: "으로",
     description: "카페", image: "asset/C_house.png",
     voteBounds: [38.1, 83.6, 23.2, 9.9],
+    introBounds: [41, 46, 16, 14],
     panels: [
       [[28.5, 20.5], [38.8, 16.8], [38.8, 41.6], [28.5, 45]],
       [[42.4, 15.5], [54.5, 15.6], [54.5, 40.5], [42.4, 40.5]],
@@ -144,6 +147,7 @@ const rooms = {
     name: "애자일", direction: "로",
     description: "캠핑 공간", image: "asset/A_house.png",
     voteBounds: [37.4, 85.7, 25, 10.9],
+    introBounds: [42, 44.5, 16, 17],
     panels: [
       [[29.3, 18.5], [40.8, 16], [40.8, 44], [29.3, 46.3]],
       [[43.2, 14], [55.5, 14], [55.5, 40.6], [43.2, 40.6]],
@@ -202,9 +206,25 @@ const boardContent = document.getElementById("board-content");
 const boardScrollHint = document.getElementById("board-scroll-hint");
 const boardContentObserver = new ResizeObserver(updateScrollHint);
 const reducedScrollMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-let scrollPreviewPending = false;
-let scrollPreviewTimer;
-let scrollPreviewFrame;
+const candidateScrollPreview = createScrollPreview(boardContent, () => candidateDialog.open);
+const houseIntroOpen = document.getElementById("house-intro-open");
+const houseIntroDialog = document.getElementById("house-intro-dialog");
+const houseIntroTitle = document.getElementById("house-intro-title");
+const houseIntroContent = document.getElementById("house-intro-content");
+const houseIntroImage = document.getElementById("house-intro-image");
+const houseIntroZoom = document.getElementById("house-intro-zoom");
+const houseIntroZoomPlus = document.getElementById("house-intro-zoom-plus");
+const houseIntroClose = document.getElementById("house-intro-close");
+const houseIntroScrollHint = document.getElementById("house-intro-scroll-hint");
+const houseIntroScrollPreview = createScrollPreview(houseIntroContent, () => houseIntroDialog.open);
+const houseIntroSeenKey = "osca.house-intros.seen.v1";
+const houseIntroSeen = new Set();
+let houseIntroRequest = 0;
+let houseIntroOpener;
+try {
+  const seen = JSON.parse(window.sessionStorage.getItem(houseIntroSeenKey) || "[]");
+  if (Array.isArray(seen)) for (const house of seen) if (Object.hasOwn(rooms, house)) houseIntroSeen.add(house);
+} catch { /* 저장소가 제한되어도 현재 페이지 안에서는 한 번만 안내합니다. */ }
 const boardClose = document.getElementById("board-close");
 const boardVote = document.getElementById("board-vote");
 const boardVoteLabel = document.getElementById("board-vote-label");
@@ -365,31 +385,42 @@ function renderIntroduction(content) {
   boardContentObserver.observe(article);
 }
 
-function cancelScrollPreview() {
-  scrollPreviewPending = false;
-  clearTimeout(scrollPreviewTimer);
-  cancelAnimationFrame(scrollPreviewFrame);
-}
-
-// 후보를 열었을 때 한 번만 조금 스크롤해 아래에 내용이 더 있음을 알립니다.
-function queueScrollPreview() {
-  if (!scrollPreviewPending || boardScrollHint.hidden) return;
-  scrollPreviewPending = false;
-  if (reducedScrollMotion.matches) return;
-  scrollPreviewTimer = setTimeout(() => {
-    if (!candidateDialog.open || reducedScrollMotion.matches || boardContent.scrollTop > 0) return;
-    const distance = Math.min(18, boardContent.scrollHeight - boardContent.clientHeight);
-    if (distance <= 2) return;
-    let started;
-    const step = (timestamp) => {
-      if (!candidateDialog.open || reducedScrollMotion.matches) return;
-      started ??= timestamp;
-      const progress = Math.min((timestamp - started) / 800, 1);
-      boardContent.scrollTop = progress < 1 ? distance * Math.sin(Math.PI * progress) ** 2 : 0;
-      if (progress < 1) scrollPreviewFrame = requestAnimationFrame(step);
-    };
-    scrollPreviewFrame = requestAnimationFrame(step);
-  }, 350);
+// 후보 소개와 하우스 이미지에 같은 왕복 스크롤 안내를 사용합니다.
+function createScrollPreview(content, isOpen) {
+  let pending = false;
+  let timer;
+  let frame;
+  const cancel = () => {
+    pending = false;
+    clearTimeout(timer);
+    cancelAnimationFrame(frame);
+  };
+  const update = () => {
+    if (!pending || !isOpen() || content.scrollHeight - content.clientHeight <= 2) return;
+    pending = false;
+    if (reducedScrollMotion.matches) return;
+    timer = setTimeout(() => {
+      if (!isOpen() || reducedScrollMotion.matches || content.scrollTop > 0) return;
+      const distance = Math.min(18, content.scrollHeight - content.clientHeight);
+      if (distance <= 2) return;
+      let started;
+      const step = (timestamp) => {
+        if (!isOpen() || reducedScrollMotion.matches) return;
+        started ??= timestamp;
+        const progress = Math.min((timestamp - started) / 800, 1);
+        content.scrollTop = progress < 1 ? distance * Math.sin(Math.PI * progress) ** 2 : 0;
+        if (progress < 1) frame = requestAnimationFrame(step);
+      };
+      frame = requestAnimationFrame(step);
+    }, 350);
+  };
+  for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+    content.addEventListener(event, cancel, { passive: true });
+  }
+  reducedScrollMotion.addEventListener("change", () => {
+    if (reducedScrollMotion.matches) cancel();
+  });
+  return { cancel, update, prepare: () => { cancel(); pending = true; update(); } };
 }
 
 function updateScrollHint() {
@@ -399,21 +430,15 @@ function updateScrollHint() {
   boardScrollHint.dataset.direction = atBottom ? "up" : "down";
   boardScrollHint.firstElementChild.textContent = atBottom ? "↑" : "↓";
   boardScrollHint.setAttribute("aria-label", atBottom ? "소개 내용 최상단으로 이동" : "소개 내용 최하단으로 이동");
-  queueScrollPreview();
+  candidateScrollPreview.update();
 }
 boardContent.addEventListener("scroll", updateScrollHint, { passive: true });
-for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
-  boardContent.addEventListener(event, cancelScrollPreview, { passive: true });
-}
-reducedScrollMotion.addEventListener("change", () => {
-  if (reducedScrollMotion.matches) cancelScrollPreview();
-});
 candidateDialog.addEventListener("close", () => {
-  cancelScrollPreview();
+  candidateScrollPreview.cancel();
   updateScrollHint();
 });
 boardScrollHint.addEventListener("click", () => {
-  cancelScrollPreview();
+  candidateScrollPreview.cancel();
   boardContent.scrollTo({
     top: boardScrollHint.dataset.direction === "up" ? 0 : boardContent.scrollHeight,
     behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
@@ -448,7 +473,7 @@ function renderCandidates(room) {
 }
 
 function selectCandidate(index, focus = false) {
-  cancelScrollPreview();
+  candidateScrollPreview.cancel();
   const room = rooms[currentHouse];
   boardTabs.querySelectorAll("button").forEach((tab, tabIndex) => {
     const selected = tabIndex === index;
@@ -462,11 +487,12 @@ function selectCandidate(index, focus = false) {
   boardContent.setAttribute("aria-labelledby", `candidate-tab-${index + 1}`);
   renderIntroduction(room.candidates[index].content);
   boardContent.scrollTop = 0;
-  scrollPreviewPending = true;
+  candidateScrollPreview.prepare();
   updateScrollHint();
 }
 
 async function openCandidateBoard(index) {
+  houseIntroRequest += 1;
   const request = ++boardRequest;
   const room = rooms[currentHouse];
   candidateDialog.dataset.house = currentHouse;
@@ -526,6 +552,98 @@ boardClose.addEventListener("click", () => candidateDialog.close());
 candidateDialog.addEventListener("click", (event) => {
   if (event.target === candidateDialog) candidateDialog.close();
 });
+
+function updateHouseIntroScrollHint() {
+  const overflow = houseIntroContent.scrollHeight - houseIntroContent.clientHeight;
+  const atBottom = overflow - houseIntroContent.scrollTop <= 2;
+  houseIntroScrollHint.hidden = !houseIntroDialog.open || overflow <= 2;
+  houseIntroScrollHint.dataset.direction = atBottom ? "up" : "down";
+  houseIntroScrollHint.firstElementChild.textContent = atBottom ? "↑" : "↓";
+  houseIntroScrollHint.setAttribute("aria-label", atBottom ? "하우스 소개 최상단으로 이동" : "하우스 소개 최하단으로 이동");
+  houseIntroScrollPreview.update();
+}
+
+function setHouseIntroExpanded(expanded) {
+  houseIntroDialog.classList.toggle("is-expanded", expanded);
+  houseIntroZoom.setAttribute("aria-pressed", String(expanded));
+  houseIntroZoom.setAttribute("aria-label", expanded ? "소개 이미지 축소하기" : "소개 이미지 확대하기");
+  houseIntroZoom.title = expanded ? "축소하기" : "확대하기";
+  houseIntroZoomPlus.toggleAttribute("hidden", expanded);
+}
+
+async function openHouseIntroduction() {
+  const house = currentHouse;
+  if (!rooms[house] || villageApp.inert || document.getElementById("service-content").inert
+      || document.querySelector("dialog[open]")) return;
+  const request = ++houseIntroRequest;
+  const opener = document.activeElement;
+  houseIntroImage.src = `asset/${house}_Intro_crop.png`;
+  houseIntroImage.width = house === "A" ? 802 : 850;
+  houseIntroImage.height = house === "A" ? 1233 : 1257;
+  houseIntroImage.alt = `${house} 하우스 · ${rooms[house].name} 소개`;
+  houseIntroTitle.textContent = `${house} · ${rooms[house].name} 소개`;
+  try {
+    await houseIntroImage.decode();
+  } catch {
+    if (request === houseIntroRequest) announcement.textContent = "하우스 소개 이미지를 불러오지 못했습니다. 바닥 문자를 눌러 다시 시도해 주세요.";
+    return;
+  }
+  if (request !== houseIntroRequest || currentHouse !== house || villageApp.inert
+      || document.getElementById("service-content").inert || document.querySelector("dialog[open]")) return;
+  houseIntroOpener = opener;
+  setHouseIntroExpanded(false);
+  houseIntroDialog.showModal();
+  houseIntroContent.scrollTop = 0;
+  houseIntroScrollPreview.prepare();
+  updateHouseIntroScrollHint();
+  houseIntroClose.focus({ preventScroll: true });
+  houseIntroSeen.add(house);
+  try { window.sessionStorage.setItem(houseIntroSeenKey, JSON.stringify([...houseIntroSeen])); } catch { /* 현재 페이지의 방문 상태는 유지합니다. */ }
+}
+
+function showFirstHouseIntroduction() {
+  if (rooms[currentHouse] && !houseIntroSeen.has(currentHouse)) openHouseIntroduction();
+}
+
+houseIntroOpen.addEventListener("click", openHouseIntroduction);
+houseIntroClose.addEventListener("click", () => houseIntroDialog.close());
+let houseIntroBackdropPressed = false;
+const outsideHouseIntro = (event) => {
+  const bounds = houseIntroDialog.getBoundingClientRect();
+  return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+};
+houseIntroDialog.addEventListener("pointerdown", (event) => {
+  houseIntroBackdropPressed = event.target === houseIntroDialog && outsideHouseIntro(event);
+});
+houseIntroDialog.addEventListener("click", (event) => {
+  if (houseIntroBackdropPressed && event.target === houseIntroDialog && outsideHouseIntro(event)) houseIntroDialog.close();
+  houseIntroBackdropPressed = false;
+});
+houseIntroDialog.addEventListener("close", () => {
+  houseIntroRequest += 1;
+  houseIntroScrollPreview.cancel();
+  updateHouseIntroScrollHint();
+  if (!villageApp.inert && !document.getElementById("service-content").inert && houseIntroOpener?.isConnected) {
+    houseIntroOpener.focus({ preventScroll: true });
+  }
+});
+houseIntroZoom.addEventListener("click", () => {
+  houseIntroScrollPreview.cancel();
+  const previousOverflow = houseIntroContent.scrollHeight - houseIntroContent.clientHeight;
+  const progress = previousOverflow > 0 ? houseIntroContent.scrollTop / previousOverflow : 0;
+  setHouseIntroExpanded(!houseIntroDialog.classList.contains("is-expanded"));
+  houseIntroContent.scrollTop = progress * (houseIntroContent.scrollHeight - houseIntroContent.clientHeight);
+  updateHouseIntroScrollHint();
+});
+houseIntroScrollHint.addEventListener("click", () => {
+  houseIntroScrollPreview.cancel();
+  houseIntroContent.scrollTo({ top: houseIntroScrollHint.dataset.direction === "up" ? 0 : houseIntroContent.scrollHeight,
+    behavior: reducedScrollMotion.matches ? "instant" : "smooth" });
+});
+houseIntroContent.addEventListener("scroll", updateHouseIntroScrollHint, { passive: true });
+const houseIntroResizeObserver = new ResizeObserver(updateHouseIntroScrollHint);
+houseIntroResizeObserver.observe(houseIntroContent);
+houseIntroResizeObserver.observe(houseIntroImage);
 
 function refreshVoteStatus() {
   const state = client.state;
@@ -843,7 +961,8 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function closeScreenDialogs() {
-  for (const dialog of [voteDialog, identityDialog, myVotesDialog, candidateDialog]) {
+  houseIntroRequest += 1;
+  for (const dialog of [voteDialog, identityDialog, myVotesDialog, candidateDialog, houseIntroDialog]) {
     if (dialog.open) dialog.close();
   }
 }
@@ -861,6 +980,12 @@ function renderScreen({ focus = true } = {}) {
   currentHouse = house;
   renderCandidates(room);
   candidatePanels.hidden = !room;
+  houseIntroOpen.hidden = !room;
+  if (room) {
+    positionElement(houseIntroOpen, room.introBounds);
+    houseIntroOpen.setAttribute("aria-label", `${house} 하우스 소개 다시 보기`);
+    houseIntroOpen.title = `${house} · ${room.name} 소개 다시 보기`;
+  }
 
   sceneImage.src = room ? room.image : "asset/OSCA_home.png?v=3";
   sceneImage.width = room ? 1448 : 2613;
@@ -884,6 +1009,7 @@ function renderScreen({ focus = true } = {}) {
   if (focus) focusTarget?.focus({ preventScroll: true });
   previousHouse = house;
   if (client.state.status === "ready") client.restore().catch(() => {});
+  if (focus) showFirstHouseIntroduction();
   return focusTarget;
 }
 
@@ -928,11 +1054,15 @@ async function transitionScreen() {
       villageApp.style.opacity = "";
       villageApp.inert = false;
       focusTarget?.focus({ preventScroll: true });
+      showFirstHouseIntroduction();
     }
   }
 }
 
 window.addEventListener("hashchange", transitionScreen);
+window.matchMedia("(min-width: 1024px) and (orientation: landscape)").addEventListener("change", (event) => {
+  if (event.matches) showFirstHouseIntroduction();
+});
 renderScreen();
 client.restore().catch(() => {});
 refreshVoting();

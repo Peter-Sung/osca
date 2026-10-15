@@ -9,6 +9,7 @@ await rm(output, { recursive: true, force: true });
 await mkdir(new URL("./dist/asset/", import.meta.url), { recursive: true });
 const files = ["index.html", "styles.css", "app.js", "config.js", "vote-store.js", "admin.html", "admin.css", "admin.js", "display-guard.js",
   "asset/favicon-32.png", "asset/favicon-192.png",
+  ...["O", "S", "C", "A"].map((house) => `asset/${house}_Intro_crop.png`),
   ...["OSCA_home", "O_house", "S_house", "C_house", "A_house", "O_desc_board_vote", "S_desc_board_vote", "C_desc_board_vote", "A_desc_board_vote"].map((name) => `asset/${name}.png`)];
 await Promise.all(files.map((file) => copyFile(new URL(file, import.meta.url), new URL(`./dist/${file}`, import.meta.url))));
 console.log(`공개 파일 ${files.length}개를 dist에 생성했습니다.`);

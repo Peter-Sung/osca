@@ -42,6 +42,8 @@ npm run test:db
 - `Tab`으로 입구를 선택하고 `Enter`로 이동할 수 있습니다.
 - 브라우저 뒤로 가기·앞으로 가기를 지원합니다.
 - 마을과 하우스를 오갈 때 다음 배경 이미지를 준비한 뒤 180ms 페이드 아웃·300ms 페이드 인으로 전환합니다. 전환 중에는 클릭을 차단하며, 동작 줄이기 설정에서는 즉시 이동합니다.
+- 각 하우스에 처음 들어가면 해당 `asset/*_Intro_crop.png` 소개 이미지를 표시합니다. 같은 탭에서는 하우스별로 한 번만 자동 표시하며 새로고침해도 방문 상태를 유지합니다. 바닥의 O·S·C·A 문자를 클릭하면 다시 볼 수 있고, X·바깥 영역 클릭·`Esc`로 닫습니다. 저장소가 제한된 환경에서는 현재 페이지 안에서만 방문 상태를 유지합니다.
+- 하우스 소개의 기본 너비는 후보·투표 보드의 50%, 확대 너비는 92%입니다. 돋보기 아이콘으로 확대·축소하고 내부에서 세로로 스크롤합니다. 스크롤 가능한 경우 후보 소개와 같은 최대 18px 왕복 안내 효과와 위·아래 이동 버튼을 제공합니다.
 - 방의 후보패널을 클릭하면 해당 방의 상세 보드가 팝업으로 열립니다.
 - 클릭한 후보는 보드 상단에서 금빛 테두리와 `✓ 선택` 배지로 표시됩니다.
 - 보드 상단의 다른 후보판을 클릭하거나 방향키로 후보를 바꿀 수 있습니다.
@@ -168,11 +170,11 @@ order by u.created_at desc, v.house;
 
 기존 정적 배포는 `/admin.html` 파일만 제공하며 로컬 `server.mjs`의 `/wic_admin` 경로와 관리자 API를 실행하지 않아 404가 발생합니다. HTML 경로만 연결해서는 로그인까지 동작하지 않습니다.
 
-`vercel.json`은 `/wic_admin`을 관리자 HTML로, `/wic_admin/api/:action`을 `api/wic_admin/[action].mjs` 서버 함수로 연결합니다. `npm run build`는 공개 화면·이미지·화면 제한 스크립트·파비콘 20개를 `dist`로 복사합니다. 서버 소스·문서·SQL·테스트는 정적 배포에서 제외됩니다. 이미지는 CDN에서 제공하고, 관리자 요청만 Vercel Node 함수가 기존 Supabase API로 중계합니다. 관리자 비밀번호와 Supabase 비밀 키를 Vercel 환경 변수에 넣을 필요는 없습니다.
+`vercel.json`은 `/wic_admin`을 관리자 HTML로, `/wic_admin/api/:action`을 `api/wic_admin/[action].mjs` 서버 함수로 연결합니다. `npm run build`는 공개 화면·이미지·화면 제한 스크립트·파비콘 24개를 `dist`로 복사합니다. 서버 소스·문서·SQL·테스트는 정적 배포에서 제외됩니다. 이미지는 CDN에서 제공하고, 관리자 요청만 Vercel Node 함수가 기존 Supabase API로 중계합니다. 관리자 비밀번호와 Supabase 비밀 키를 Vercel 환경 변수에 넣을 필요는 없습니다.
 
 1. 수정 소스가 GitHub `Peter-Sung/osca`의 `master`에 반영된 뒤 [Vercel Dashboard](https://vercel.com/dashboard)에서 **osca-vote** 프로젝트를 엽니다.
 2. **Settings → Build and Deployment**에서 프로젝트의 **Root Directory**가 저장소 루트인지 확인합니다. `vercel.json`과 `package.json`이 있는 위치가 루트여야 합니다.
-3. 배포 설정은 저장소의 `vercel.json`에서 **Framework Preset = Other**, **Build Command = npm run build**, **Output Directory = dist**로 지정했습니다. 이 설정은 프로젝트의 해당 설정을 덮어쓰므로 정상적으로 구성 파일을 읽으면 별도로 변경하지 않아도 됩니다. 빌드 로그에 `공개 파일 17개를 dist에 생성했습니다.`가 표시되는지 확인합니다.
+3. 배포 설정은 저장소의 `vercel.json`에서 **Framework Preset = Other**, **Build Command = npm run build**, **Output Directory = dist**로 지정했습니다. 이 설정은 프로젝트의 해당 설정을 덮어쓰므로 정상적으로 구성 파일을 읽으면 별도로 변경하지 않아도 됩니다. 빌드 로그에 `공개 파일 24개를 dist에 생성했습니다.`가 표시되는지 확인합니다.
 4. **Deployments**에서 새 커밋의 배포를 선택하고 **Ready**가 될 때까지 확인합니다. 이전 커밋을 다시 배포하면 수정이 적용되지 않습니다. 새 배포가 자동 생성되지 않으면 Git 연결과 배포 브랜치가 `Peter-Sung/osca`·`master`인지 확인합니다. 새 커밋의 배포를 다시 실행할 때는 **Redeploy**를 사용합니다.
 5. **Production** 도메인이 새 배포를 가리키는지 확인한 뒤 [운영 관리자](https://osca-vote.vercel.app/wic_admin)를 새로고침합니다. 지정 비밀번호로 로그인해 대시보드·사용자 검색을 확인합니다.
 6. 화면이 404이면 새 커밋과 Root Directory·설정 파일 반영 여부를 먼저 확인합니다. 로그인 요청이 404이면 배포 상세에서 `api/wic_admin/[action].mjs` 함수가 생성되었는지 확인합니다. 503이면 Vercel의 **Logs**와 Supabase **Edge Functions → osca-admin → Invocations / Logs**에서 동일 시각의 응답을 확인합니다. 로그에 관리자 비밀번호나 쿠키 값을 직접 기록하지 않습니다.

@@ -34,6 +34,7 @@
           <a class="entrance a-entrance" href="#house/A" aria-label="A 집으로 들어가기"><span class="house-voted-sign" aria-hidden="true" hidden><span class="sign-check">✓</span><span>투표 완료</span></span></a>
         </nav>
         <div class="candidate-panels" id="candidate-panels" role="group" aria-label="후보패널" hidden></div>
+        <button class="house-intro-open" id="house-intro-open" type="button" aria-haspopup="dialog" aria-controls="house-intro-dialog" hidden></button>
         <a class="back-link" id="back-link" href="#village" hidden><span aria-hidden="true">←</span> 마을로 돌아가기</a>
         <div class="room-voted-sign" id="room-voted-sign" role="status" hidden>
           <span class="completion-seal" aria-hidden="true">✓</span>
@@ -48,6 +49,21 @@
       </nav>
       <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
     </main>
+    <dialog class="house-intro-dialog" id="house-intro-dialog" aria-labelledby="house-intro-title">
+      <header class="house-intro-header">
+        <h2 id="house-intro-title">하우스 소개</h2>
+        <div class="house-intro-tools">
+          <button id="house-intro-zoom" type="button" aria-label="소개 이미지 확대하기" title="확대하기" aria-pressed="false" aria-controls="house-intro-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M15 15l6 6M6 10h8"/><path id="house-intro-zoom-plus" d="M10 6v8"/></svg>
+          </button>
+          <button id="house-intro-close" type="button" aria-label="하우스 소개 닫기" title="닫기">×</button>
+        </div>
+      </header>
+      <div class="house-intro-content" id="house-intro-content" tabindex="0" role="region" aria-label="하우스 소개 이미지, 스크롤해서 보기">
+        <img id="house-intro-image" alt="" decoding="async">
+      </div>
+      <button class="board-scroll-hint house-intro-scroll-hint" id="house-intro-scroll-hint" type="button" aria-controls="house-intro-content" aria-label="하우스 소개 최하단으로 이동" hidden><span aria-hidden="true">↓</span></button>
+    </dialog>
     <dialog class="candidate-dialog" id="candidate-dialog" aria-labelledby="board-title">
       <div class="candidate-board" id="candidate-board">
         <h2 class="sr-only" id="board-title">후보 상세 보드</h2>

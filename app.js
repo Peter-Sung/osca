@@ -192,6 +192,32 @@ const rooms = {
 const scene = document.getElementById("scene");
 const sceneImage = document.getElementById("scene-image");
 const villageApp = document.querySelector(".village-app");
+const homeTicker = document.getElementById("home-ticker");
+const homeTickerTrack = document.getElementById("home-ticker-track");
+const homeTickerItem = homeTickerTrack.firstElementChild;
+
+// 전체 문장 하나의 실제 너비만큼 이동하고, 넓은 화면에도 다음 문장이 이어지게 합니다.
+function updateHomeTicker() {
+  const itemWidth = homeTickerItem.getBoundingClientRect().width;
+  const viewportWidth = homeTickerTrack.parentElement.clientWidth;
+  if (!itemWidth || !viewportWidth) return;
+  const itemCount = Math.max(2, Math.ceil(viewportWidth / itemWidth) + 1);
+  while (homeTickerTrack.children.length < itemCount) {
+    const copy = homeTickerItem.cloneNode(true);
+    copy.setAttribute("aria-hidden", "true");
+    homeTickerTrack.append(copy);
+  }
+  while (homeTickerTrack.children.length > itemCount) homeTickerTrack.lastElementChild.remove();
+  homeTickerTrack.style.setProperty("--home-ticker-distance", `${itemWidth}px`);
+  homeTickerTrack.classList.add("is-ready");
+}
+const homeTickerObserver = new ResizeObserver(updateHomeTicker);
+// 폰트 교체로 문장 길이가 달라지는 동안에는 스크롤을 시작하지 않습니다.
+document.fonts.ready.then(() => {
+  homeTickerObserver.observe(homeTickerItem);
+  homeTickerObserver.observe(homeTickerTrack.parentElement);
+  updateHomeTicker();
+});
 const entrances = document.getElementById("entrances");
 const mobileEntrances = document.getElementById("mobile-entrances");
 const backLink = document.getElementById("back-link");
@@ -995,6 +1021,7 @@ function renderScreen({ focus = true } = {}) {
     : "오스카 빌리지. 왼쪽부터 O, S, C, A 집이 자리하고 있습니다.";
   scene.style.setProperty("--scene-ratio", room ? "1.333333" : "1.776343");
   entrances.hidden = Boolean(room);
+  homeTicker.hidden = Boolean(room);
   mobileEntrances.hidden = Boolean(room);
   backLink.hidden = !room;
   userStatus.hidden = Boolean(room);

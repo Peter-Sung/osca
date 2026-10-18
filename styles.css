@@ -130,6 +130,8 @@ button { font: inherit; }
 body:has(dialog[open]) { overflow: hidden; }
 
 .village-app {
+  --village-width: min(100%, calc((100svh - 190px) * 1.776343));
+  --scene-radius: 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -138,19 +140,60 @@ body:has(dialog[open]) { overflow: hidden; }
   padding: 16px;
 }
 
+.home-ticker {
+  --home-ticker-duration: 17s; /* 한 문장 전체가 흐르는 시간. 값을 줄이면 더 빨라집니다. */
+  display: flex;
+  align-items: center;
+  width: var(--village-width);
+  min-height: 52px;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid #ffffff18;
+  border-radius: var(--scene-radius);
+  background: #211c25;
+  color: #fffaf0;
+  box-shadow: 0 4px 16px #59432214;
+}
+.home-ticker-viewport { min-width: 0; flex: 1; overflow: hidden; }
+.home-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: home-ticker-scroll var(--home-ticker-duration) linear infinite;
+  animation-play-state: paused;
+}
+.home-ticker-track.is-ready { animation-play-state: running; }
+.home-ticker-item {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 14px 80px 14px 20px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.home-ticker-item strong, .home-ticker-separator { color: #ff4da6; font-weight: 700; }
+.home-ticker-note { color: #fbbf24; font-weight: 600; }
+.home-ticker-separator { margin-right: 14px; }
+.home-ticker:hover .home-ticker-track { animation-play-state: paused; }
+@keyframes home-ticker-scroll {
+  to { transform: translateX(calc(-1 * var(--home-ticker-distance, 0px))); }
+}
+
 .scene {
   --scene-ratio: 1.77634;
   position: relative;
   width: min(100%, calc((100svh - 100px) * var(--scene-ratio)));
   flex-shrink: 0;
-  border-radius: 16px;
+  border-radius: var(--scene-radius);
   box-shadow: 0 12px 48px #59432220;
   isolation: isolate;
   container-type: inline-size;
 }
 
 .scene-image { display: block; width: 100%; height: auto; border-radius: inherit; }
-.scene.is-village { width: min(100%, calc((100svh - 190px) * var(--scene-ratio))); }
+.scene.is-village { width: var(--village-width); }
 .entrances { position: absolute; inset: 0; pointer-events: none; }
 .entrance {
   position: absolute;
@@ -715,9 +758,9 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 
 @media (max-width: 640px) {
-  .village-app { padding: 10px; }
+  .village-app { --village-width: min(100%, calc((100svh - 240px) * 1.776343)); --scene-radius: 10px; padding: 10px; }
   .scene { width: min(100%, calc((100svh - 170px) * var(--scene-ratio))); border-radius: 10px; }
-  .scene.is-village { width: min(100%, calc((100svh - 240px) * var(--scene-ratio))); }
+  .scene.is-village { width: var(--village-width); }
   .room-voted-sign { gap: 5px; padding: 5px 8px; transform: translate(-50%, calc(-100% - 6px)); }
   .room-voted-sign div > span { font-size: 9px; }
   .completion-seal { width: 22px; height: 22px; font-size: 15px; }
@@ -743,6 +786,9 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-ticker-track { width: 100%; animation: none; }
+  .home-ticker-item { flex-shrink: 1; padding: 14px 20px; white-space: normal; overflow-wrap: anywhere; }
+  .home-ticker-item[aria-hidden="true"] { display: none; }
   .entrance { transition: none; }
   .board-scroll-hint > span { animation: none; }
 }

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="OSCA 시상식 · 오프라인 투표 결과 발표 화면">
+  <title>OSCA · THE REVEAL</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="ceremony.css">
+  <script defer src="config.js"></script>
+  <script defer src="votes.js"></script>
+  <script defer src="engine.js"></script>
+  <script defer src="render.js"></script>
+  <script defer src="player.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="operator-header">
+      <a class="wordmark" href="index.html" aria-label="OSCA 시작 화면">OSCA<span>THE REVEAL</span></a>
+      <div class="header-actions">
+        <span class="connection"><i></i> 오프라인 준비 완료</span>
+        <button id="names-button" class="quiet">후보 이름</button>
+        <button id="guide-button" class="quiet">사용 안내 <kbd>?</kbd></button>
+      </div>
+    </header>
+
+    <main>
+      <div class="screen-frame" id="screen-frame">
+        <canvas id="stage" width="1920" height="1080" role="img" aria-label="OSCA 시상식 시작 화면"></canvas>
+        <div class="loading" id="loading">에이투지체와 투표 데이터를 준비하고 있습니다.</div>
+        <button id="screen-exit" class="screen-exit" aria-label="전체화면 종료">전체화면 종료 <kbd>Esc</kbd></button>
+      </div>
+
+      <section class="control-deck" aria-label="행사 진행 제어">
+        <div class="deck-top">
+          <nav class="house-tabs" aria-label="시상 부문">
+            <button data-house="O" aria-pressed="false"><span>O</span> Outsight D.T</button>
+            <button data-house="S" aria-pressed="false"><span>S</span> 서비스생산시스템</button>
+            <button data-house="C" aria-pressed="false"><span>C</span> 컨설팅&엑셀러레이팅</button>
+            <button data-house="A" aria-pressed="false"><span>A</span> 애자일</button>
+          </nav>
+          <div class="view-actions">
+            <a id="audience-button" class="quiet audience-link" href="index.html?screen=1" target="OSCA_AUDIENCE" role="button">송출 창 ↗</a>
+            <button id="fullscreen-button" class="quiet">전체화면 <kbd>F</kbd></button>
+          </div>
+        </div>
+
+        <div class="transport">
+          <div class="cue"><span class="eyebrow" id="cue-label">OPENING</span><p id="cue-text">모든 준비가 끝나면 O 부문을 시작하세요.</p></div>
+          <div class="play-controls">
+            <button id="previous-button" class="icon-button" aria-label="이전 장면" title="이전 장면 (←)">←</button>
+            <button id="pause-button" class="secondary" disabled>일시정지</button>
+            <button id="next-button" class="primary" disabled>준비 중…</button>
+          </div>
+        </div>
+
+        <div class="deck-bottom">
+          <div class="timeline"><span id="elapsed">00:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="현재 집계 구간 재생 위치" disabled><span id="duration">00:00</span></div>
+          <label class="speed-label">리허설 속도 <select id="speed"><option value="1">1× · 행사</option><option value="2">2×</option><option value="4">4×</option></select></label>
+          <button id="sound-button" class="quiet" aria-pressed="false">효과음 꺼짐</button>
+          <button id="restart-button" class="quiet">처음으로</button>
+        </div>
+      </section>
+    </main>
+    <footer class="operator-footer"><span>마곡 → 상암 → 용산 → 온라인 <b>·</b> 네 부문 동일 순서</span><span><kbd>Space</kbd> 재생 / 멈춤 <b>·</b> <kbd>→</kbd> 다음 장면 <b>·</b> 구간 종료 시 자동 정지</span></footer>
+  </div>
+
+  <dialog id="names-dialog">
+    <form id="names-form">
+      <div class="dialog-heading"><div><span class="eyebrow">CANDIDATES</span><h1>무대에 표시할 이름</h1></div><button type="button" data-close="names-dialog" class="quiet" aria-label="닫기">✕</button></div>
+      <p class="dialog-note">후보 번호와 투표 연결은 유지됩니다. 이름은 이 브라우저에 저장됩니다.</p>
+      <div id="name-fields" class="name-fields"></div>
+      <div class="dialog-actions"><button type="button" id="export-names" class="secondary">이름 설정 파일 저장</button><button type="button" data-close="names-dialog" class="quiet">취소</button><button type="submit" class="primary">이름 적용</button></div>
+    </form>
+  </dialog>
+  <dialog id="guide-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">SHOW CONTROL</span><h1>한 장면씩, 여유 있게.</h1></div><button data-close="guide-dialog" class="quiet" aria-label="닫기">✕</button></div>
+    <ol class="guide-list">
+      <li><strong>후보 이름을 확인하세요.</strong><span>‘후보 이름’에서 실제 시상팀 이름으로 변경할 수 있습니다.</span></li>
+      <li><strong>송출 화면을 준비하세요.</strong><span>한 화면에서는 F로 전체화면. 듀얼 모니터는 ‘송출 창’을 열어 행사장 화면으로 이동한 뒤 그 창에서 F를 누르세요.</span></li>
+      <li><strong>사회자 멘트 후 → 키를 누르세요.</strong><span>마곡·상암·용산·온라인 집계가 각각 끝나면 자동으로 멈춥니다. Space로 중간에 멈추거나 이어갈 수 있습니다.</span></li>
+      <li><strong>최종 결과는 한 번 더 눌러 공개하세요.</strong><span>온라인 집계가 끝난 뒤 ‘수상 후보 공개’를 누르면 축하 화면이 열립니다. 다음 부문은 O → S → C → A로 이동합니다.</span></li>
+    </ol>
+    <p class="dialog-note">온라인은 실제 투표 순서를 유지하며 투표 간 공백을 압축합니다. 동점·역전 순간은 잠깐 천천히 보여주며, 네 부문에 같은 시간축을 적용합니다. 오프라인은 사옥별 합계 공개 효과입니다. 효과음은 기본 꺼짐이며, 켜면 짧은 시작·역전·축하음이 재생됩니다.</p>
+    <div class="dialog-actions"><button data-close="guide-dialog" class="primary">확인했습니다</button></div>
+  </dialog>
+  <dialog id="confirm-dialog"><h1 id="confirm-title">장면을 이동할까요?</h1><p id="confirm-copy"></p><div class="dialog-actions"><button id="confirm-cancel" class="secondary">취소</button><button id="confirm-ok" class="primary">이동</button></div></dialog>
+  <div id="toast" role="status" class="toast" hidden></div>
+  <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+</body>
+</html>

@@ -1,0 +1,12 @@
+A2Z / 에이투지체 · version 1.001
+Designer: 이주임
+Copyright © 2026 PT& (official font name-table copyright)
+License: SIL Open Font License 1.1 (official font name-table license)
+Official page: https://freesentation.blog/a2z#download
+Official release: https://github.com/Freesentation/A2Z/tree/main/v1.001
+Retrieved: 2026-10-21
+
+The WOFF2 fonts are unmodified files from the official v1.001 WOFF2 ZIP.
+ASCII file names are used for portable local paths. Internal font names,
+glyphs, and metadata have not been changed.
+This screen uses weights 400, 500, 600, 700, and 900.

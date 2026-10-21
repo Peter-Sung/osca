@@ -130,7 +130,7 @@ button { font: inherit; }
 body:has(dialog[open]) { overflow: hidden; }
 
 .village-app {
-  --village-width: min(100%, calc((100svh - 190px) * 1.776343));
+  --village-width: min(100%, calc((100svh - 210px) * 1.776343));
   --scene-radius: 16px;
   flex: 1;
   display: flex;
@@ -744,6 +744,33 @@ body:has(dialog[open]) { overflow: hidden; }
   line-height: 20px;
   text-align: center;
 }
+.ceremony-entry {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 14px;
+}
+.ceremony-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 46px;
+  padding: 11px 28px;
+  border: 1px solid #e5007d;
+  border-radius: 28px;
+  background: #fffaf7;
+  color: #c9006e;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  text-decoration: none;
+  box-shadow: 0 3px 12px #e5007d0c;
+  transition: background 150ms, color 150ms;
+}
+.ceremony-link:hover { background: #e5007d; color: #fff; }
+.ceremony-link:focus-visible { outline: 3px solid #e5007d; outline-offset: 4px; }
+.ceremony-link-arrow { font-size: 21px; font-weight: 500; }
 .mobile-entrances { display: none; }
 .sr-only {
   position: absolute;

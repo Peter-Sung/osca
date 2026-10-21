@@ -13,6 +13,7 @@
     <script src="config.js" defer></script>
     <script src="vote-store.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="ceremony-link.js" defer></script>
   </head>
   <body>
     <div id="service-content">
@@ -54,6 +55,11 @@
         <a href="#house/C">C 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
         <a href="#house/A">A 집<span class="mobile-voted-label" hidden>✓ 완료</span></a>
       </nav>
+      <div class="ceremony-entry" id="ceremony-entry">
+        <a class="ceremony-link" id="ceremony-link" href="ceremony/index.html" target="OSCA_CEREMONY_MAIN" aria-label="OSCA 결과 발표, 새 탭에서 열기">
+          <span>OSCA 결과 발표</span><span class="ceremony-link-arrow" aria-hidden="true">↗</span>
+        </a>
+      </div>
       <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
     </main>
     <dialog class="house-intro-dialog" id="house-intro-dialog" aria-labelledby="house-intro-title">

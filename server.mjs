@@ -4,12 +4,16 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createAdminProxy } from "./admin-proxy.mjs";
+import { ceremonyFiles, ceremonyContentType } from "./ceremony-files.mjs";
 
 const publicFiles = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/ceremony-link.js", ["ceremony-link.js", "text/javascript; charset=utf-8"]],
+  ["/ceremony/", ["ceremony/index.html", "text/html; charset=utf-8"]],
+  ...ceremonyFiles.map((file) => [`/${file}`, [file, ceremonyContentType(file)]]),
   ["/display-guard.js", ["display-guard.js", "text/javascript; charset=utf-8"]],
   ["/asset/favicon-32.png", ["asset/favicon-32.png", "image/png"]],
   ["/asset/favicon-192.png", ["asset/favicon-192.png", "image/png"]],

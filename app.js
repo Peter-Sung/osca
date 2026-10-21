@@ -220,6 +220,7 @@ document.fonts.ready.then(() => {
 });
 const entrances = document.getElementById("entrances");
 const mobileEntrances = document.getElementById("mobile-entrances");
+const ceremonyEntry = document.getElementById("ceremony-entry");
 const backLink = document.getElementById("back-link");
 const screenTitle = document.getElementById("screen-title");
 const announcement = document.getElementById("announcement");
@@ -1023,6 +1024,7 @@ function renderScreen({ focus = true } = {}) {
   entrances.hidden = Boolean(room);
   homeTicker.hidden = Boolean(room);
   mobileEntrances.hidden = Boolean(room);
+  ceremonyEntry.hidden = Boolean(room);
   backLink.hidden = !room;
   userStatus.hidden = Boolean(room);
   scene.classList.toggle("is-village", !room);
